@@ -18,14 +18,14 @@ export function TopHeader({ context }: TopHeaderProps) {
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
             <span className="font-semibold text-slate-900">
               <span className="sr-only">Organization: </span>
-              {context.organizationName}
+              {context.organization.name}
             </span>
             <span aria-hidden="true" className="text-slate-300">
               /
             </span>
             <span className="text-slate-600">
               <span className="sr-only">Location: </span>
-              {context.locationName}
+              {context.location.name}
             </span>
             {context.isDemo && (
               <span className="rounded-sm bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
