@@ -1,8 +1,10 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from os import environ
 
 
 DEFAULT_CORS_ORIGINS = ("http://localhost:3000",)
+DEFAULT_DATABASE_URL = "sqlite:///./bib-platform-dev.db"
+DEFAULT_BACKEND_TELEMETRY_PROVIDER = "database"
 
 
 def _load_cors_origins() -> tuple[str, ...]:
@@ -17,11 +19,30 @@ def _load_cors_origins() -> tuple[str, ...]:
     )
 
 
+def get_database_url() -> str:
+    database_url = environ.get("BIB_DATABASE_URL", DEFAULT_DATABASE_URL).strip()
+    if not database_url:
+        raise ValueError("BIB_DATABASE_URL must not be empty.")
+    return database_url
+
+
+def get_backend_telemetry_provider() -> str:
+    provider = environ.get(
+        "BIB_BACKEND_TELEMETRY_PROVIDER",
+        DEFAULT_BACKEND_TELEMETRY_PROVIDER,
+    )
+    return provider.strip()
+
+
 @dataclass(frozen=True, slots=True)
 class Settings:
     service_name: str = "bib-platform-api"
     api_version: str = "v1"
-    cors_origins: tuple[str, ...] = _load_cors_origins()
+    cors_origins: tuple[str, ...] = field(default_factory=_load_cors_origins)
+    database_url: str = field(default_factory=get_database_url)
+    backend_telemetry_provider: str = field(
+        default_factory=get_backend_telemetry_provider
+    )
 
 
 settings = Settings()

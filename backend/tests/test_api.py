@@ -3,10 +3,6 @@ from datetime import datetime
 import pytest
 from fastapi.testclient import TestClient
 
-from app.main import app
-
-
-client = TestClient(app)
 MAIN_DINING_URL = (
     "/api/v1/organizations/demo-organization/locations/demo-main-dining/snapshot"
 )
@@ -16,7 +12,7 @@ SECONDARY_DINING_URL = (
 )
 
 
-def test_health_identifies_api_v1() -> None:
+def test_health_identifies_api_v1(client: TestClient) -> None:
     response = client.get("/api/v1/health")
 
     assert response.status_code == 200
@@ -35,6 +31,7 @@ def test_health_identifies_api_v1() -> None:
     ),
 )
 def test_demo_snapshots_identify_the_requested_location(
+    client: TestClient,
     url: str,
     location_id: str,
 ) -> None:
@@ -78,7 +75,11 @@ def test_demo_snapshots_identify_the_requested_location(
         ),
     ),
 )
-def test_demo_snapshot_counts(url: str, expected_counts: dict[str, int]) -> None:
+def test_demo_snapshot_counts(
+    client: TestClient,
+    url: str,
+    expected_counts: dict[str, int],
+) -> None:
     payload = client.get(url).json()
 
     assert {
@@ -94,6 +95,7 @@ def test_demo_snapshot_counts(url: str, expected_counts: dict[str, int]) -> None
     ),
 )
 def test_demo_snapshots_do_not_leak_across_locations(
+    client: TestClient,
     url: str,
     location_id: str,
     forbidden_id_fragment: str,
@@ -125,7 +127,10 @@ def test_demo_snapshots_do_not_leak_across_locations(
         "/api/v1/organizations/wrong-organization/locations/demo-main-dining/snapshot",
     ),
 )
-def test_unknown_organization_location_pairs_return_404(url: str) -> None:
+def test_unknown_organization_location_pairs_return_404(
+    client: TestClient,
+    url: str,
+) -> None:
     response = client.get(url)
 
     assert response.status_code == 404
@@ -137,7 +142,10 @@ def test_unknown_organization_location_pairs_return_404(url: str) -> None:
 
 
 @pytest.mark.parametrize("url", (MAIN_DINING_URL, SECONDARY_DINING_URL))
-def test_response_timestamps_are_timezone_aware_iso_8601(url: str) -> None:
+def test_response_timestamps_are_timezone_aware_iso_8601(
+    client: TestClient,
+    url: str,
+) -> None:
     payload = client.get(url).json()
     timestamp_values = [
         *(controller["lastSeenAt"] for controller in payload["controllers"]),
@@ -150,7 +158,9 @@ def test_response_timestamps_are_timezone_aware_iso_8601(url: str) -> None:
         assert parsed.utcoffset() is not None
 
 
-def test_openapi_exposes_only_versioned_operational_routes() -> None:
+def test_openapi_exposes_only_versioned_operational_routes(
+    client: TestClient,
+) -> None:
     response = client.get("/openapi.json")
     paths = response.json()["paths"]
 
@@ -167,7 +177,7 @@ def test_openapi_exposes_only_versioned_operational_routes() -> None:
     )
 
 
-def test_local_frontend_origin_is_allowed_by_cors() -> None:
+def test_local_frontend_origin_is_allowed_by_cors(client: TestClient) -> None:
     response = client.options(
         "/api/v1/health",
         headers={

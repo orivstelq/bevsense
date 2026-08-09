@@ -295,9 +295,14 @@ def _secondary_dining_snapshot() -> LocationTelemetrySnapshot:
     )
 
 
+DEMO_TELEMETRY_SNAPSHOTS = (
+    _main_dining_snapshot(),
+    _secondary_dining_snapshot(),
+)
+
 _SNAPSHOTS = {
-    (DEMO_ORGANIZATION.id, MAIN_DINING.id): _main_dining_snapshot(),
-    (DEMO_ORGANIZATION.id, SECONDARY_DINING.id): _secondary_dining_snapshot(),
+    (snapshot.organization_id, snapshot.location_id): snapshot
+    for snapshot in DEMO_TELEMETRY_SNAPSHOTS
 }
 
 
