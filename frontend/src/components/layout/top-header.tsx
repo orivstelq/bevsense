@@ -15,7 +15,7 @@ export function TopHeader({ context, persona }: TopHeaderProps) {
       <div className="mx-auto flex min-h-20 w-full max-w-7xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-4 sm:px-6 lg:px-8">
         <div className="min-w-0 flex-1">
           <p className="mb-2 text-base font-semibold tracking-tight text-slate-950 lg:hidden">
-            BiB Monitor
+            BevSense
           </p>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
             Viewing context

@@ -17,7 +17,7 @@ export function SidebarNavigation({
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
           Beverage operations
         </p>
-        <p className="mt-2 text-lg font-semibold tracking-tight">BiB Monitor</p>
+        <p className="mt-2 text-lg font-semibold tracking-tight">BevSense</p>
       </div>
 
       <nav aria-label="Primary navigation" className="flex-1 px-3 py-5">

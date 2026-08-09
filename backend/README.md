@@ -1,4 +1,4 @@
-# BiB Platform API
+# BevSense API
 
 The backend is a FastAPI service for versioned, location-scoped BiB telemetry. Its normal data path is:
 

@@ -6,8 +6,8 @@ from app.core.config import settings
 
 
 app = FastAPI(
-    title="BiB Platform API",
-    summary="Versioned telemetry API for the BiB monitoring platform.",
+    title="BevSense API",
+    summary="Versioned telemetry API for the BevSense beverage monitoring platform.",
     version=settings.api_version,
 )
 

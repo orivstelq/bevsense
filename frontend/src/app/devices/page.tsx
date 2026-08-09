@@ -7,7 +7,7 @@ import { resolveDemoContextFromSearchParams } from "@/lib/demo-context";
 import { loadLocationTelemetry } from "@/lib/telemetry/load-location-telemetry";
 
 export const metadata: Metadata = {
-  title: "Devices | BiB Monitor",
+  title: "Devices | BevSense",
 };
 
 export default async function DevicesPage({

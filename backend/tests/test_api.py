@@ -18,7 +18,7 @@ def test_health_identifies_api_v1(client: TestClient) -> None:
     assert response.status_code == 200
     assert response.json() == {
         "status": "ok",
-        "service": "bib-platform-api",
+        "service": "bevsense-api",
         "apiVersion": "v1",
     }
 

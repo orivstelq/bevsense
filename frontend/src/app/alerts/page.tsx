@@ -9,7 +9,7 @@ import { resolveDemoContextFromSearchParams } from "@/lib/demo-context";
 import { loadLocationTelemetry } from "@/lib/telemetry/load-location-telemetry";
 
 export const metadata: Metadata = {
-  title: "Alerts | BiB Monitor",
+  title: "Alerts | BevSense",
 };
 
 export default async function AlertsPage({

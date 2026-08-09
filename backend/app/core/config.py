@@ -101,7 +101,7 @@ def get_ingestion_enabled() -> bool:
 
 @dataclass(frozen=True, slots=True)
 class Settings:
-    service_name: str = "bib-platform-api"
+    service_name: str = "bevsense-api"
     api_version: str = "v1"
     cors_origins: tuple[str, ...] = field(default_factory=_load_cors_origins)
     database_url: URL = field(default_factory=get_database_url)

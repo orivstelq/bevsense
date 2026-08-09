@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "BiB Monitor | Operations Overview",
+  title: "BevSense | Operations Overview",
   description:
     "Bag-in-Box beverage inventory monitoring and operational readiness.",
 };

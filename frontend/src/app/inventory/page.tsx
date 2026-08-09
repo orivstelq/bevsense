@@ -7,7 +7,7 @@ import { resolveDemoContextFromSearchParams } from "@/lib/demo-context";
 import { loadLocationTelemetry } from "@/lib/telemetry/load-location-telemetry";
 
 export const metadata: Metadata = {
-  title: "Inventory | BiB Monitor",
+  title: "Inventory | BevSense",
 };
 
 export default async function InventoryPage({
