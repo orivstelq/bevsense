@@ -1,3 +1,5 @@
+import { demoAlertPolicy } from "@/config/demo-alert-policy";
+import { evaluateAlerts } from "@/lib/alerts/evaluate-alerts";
 import type { LocationTelemetrySnapshot } from "@/types/domain";
 
 type OverviewProps = {
@@ -9,6 +11,7 @@ function pluralize(count: number, label: string) {
 }
 
 export function Overview({ snapshot }: OverviewProps) {
+  const alertFindings = evaluateAlerts(snapshot, demoAlertPolicy);
   const overviewStates = [
     {
       label: "Inventory",
@@ -17,9 +20,8 @@ export function Overview({ snapshot }: OverviewProps) {
     },
     {
       label: "Alerts",
-      state: "Alert rules not configured",
-      description:
-        "Alert behavior and thresholds are not part of this simulation phase.",
+      state: pluralize(alertFindings.length, "active demo finding"),
+      description: "Derived locally under the simulation-only demo alert policy.",
     },
     {
       label: "Controllers / Devices",
