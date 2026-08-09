@@ -12,14 +12,14 @@ export const metadata: Metadata = {
 export default async function InventoryPage({
   searchParams,
 }: PageProps<"/inventory">) {
-  const { context, scope } = await resolveDemoContextFromSearchParams(
+  const { context, persona, scope } = await resolveDemoContextFromSearchParams(
     searchParams,
     "/inventory",
   );
   const snapshot = await simulatedTelemetryProvider.getSnapshot(scope);
 
   return (
-    <ApplicationShell context={context}>
+    <ApplicationShell context={context} persona={persona}>
       <Inventory snapshot={snapshot} />
     </ApplicationShell>
   );

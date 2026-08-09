@@ -5,3 +5,5 @@ export const navigationItems = [
   { label: "Devices", href: "/devices", available: true },
   { label: "Analytics", href: "/analytics", available: true },
 ] as const;
+
+export type NavigationHref = (typeof navigationItems)[number]["href"];

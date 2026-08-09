@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export default async function AnalyticsPage({
   searchParams,
 }: PageProps<"/analytics">) {
-  const { context, scope } = await resolveDemoContextFromSearchParams(
+  const { context, persona, scope } = await resolveDemoContextFromSearchParams(
     searchParams,
     "/analytics",
   );
@@ -22,7 +22,7 @@ export default async function AnalyticsPage({
   const analytics = deriveSnapshotAnalytics(snapshot, demoAlertPolicy);
 
   return (
-    <ApplicationShell context={context}>
+    <ApplicationShell context={context} persona={persona}>
       <Analytics analytics={analytics} />
     </ApplicationShell>
   );

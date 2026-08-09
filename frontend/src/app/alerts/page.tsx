@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export default async function AlertsPage({
   searchParams,
 }: PageProps<"/alerts">) {
-  const { context, scope } = await resolveDemoContextFromSearchParams(
+  const { context, persona, scope } = await resolveDemoContextFromSearchParams(
     searchParams,
     "/alerts",
   );
@@ -22,7 +22,7 @@ export default async function AlertsPage({
   const findings = evaluateAlerts(snapshot, demoAlertPolicy);
 
   return (
-    <ApplicationShell context={context}>
+    <ApplicationShell context={context} persona={persona}>
       <Alerts findings={findings} policy={demoAlertPolicy} />
     </ApplicationShell>
   );

@@ -12,14 +12,14 @@ export const metadata: Metadata = {
 export default async function DevicesPage({
   searchParams,
 }: PageProps<"/devices">) {
-  const { context, scope } = await resolveDemoContextFromSearchParams(
+  const { context, persona, scope } = await resolveDemoContextFromSearchParams(
     searchParams,
     "/devices",
   );
   const snapshot = await simulatedTelemetryProvider.getSnapshot(scope);
 
   return (
-    <ApplicationShell context={context}>
+    <ApplicationShell context={context} persona={persona}>
       <Devices snapshot={snapshot} />
     </ApplicationShell>
   );

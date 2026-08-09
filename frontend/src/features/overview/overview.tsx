@@ -1,8 +1,10 @@
 import { demoAlertPolicy } from "@/config/demo-alert-policy";
+import type { DemoPersona } from "@/config/demo-personas";
 import { evaluateAlerts } from "@/lib/alerts/evaluate-alerts";
 import type { LocationTelemetrySnapshot } from "@/types/domain";
 
 type OverviewProps = {
+  persona: DemoPersona;
   snapshot: LocationTelemetrySnapshot;
 };
 
@@ -10,7 +12,7 @@ function pluralize(count: number, label: string) {
   return `${count} ${label}${count === 1 ? "" : "s"}`;
 }
 
-export function Overview({ snapshot }: OverviewProps) {
+export function Overview({ persona, snapshot }: OverviewProps) {
   const alertFindings = evaluateAlerts(snapshot, demoAlertPolicy);
   const overviewStates = [
     {
@@ -61,6 +63,38 @@ export function Overview({ snapshot }: OverviewProps) {
           receiving telemetry from real beverage equipment.
         </p>
       </aside>
+
+      <section aria-labelledby="demo-perspective-title">
+        <div className="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+            Demo perspective
+          </p>
+          <h2
+            className="mt-2 text-lg font-semibold text-slate-950"
+            id="demo-perspective-title"
+          >
+            {persona.label}
+          </h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+            {persona.overview.summary}
+          </p>
+          <ul className="mt-4 grid gap-2 text-sm text-slate-700 sm:grid-cols-2 lg:grid-cols-4">
+            {persona.overview.focusItems.map((item) => (
+              <li
+                className="rounded-sm border border-slate-200 bg-slate-50 px-3 py-2"
+                key={item}
+              >
+                {item}
+              </li>
+            ))}
+          </ul>
+          {persona.overview.note && (
+            <p className="mt-4 text-sm leading-6 text-slate-600">
+              {persona.overview.note}
+            </p>
+          )}
+        </div>
+      </section>
 
       <section aria-labelledby="system-status-title">
         <div className="mb-4">

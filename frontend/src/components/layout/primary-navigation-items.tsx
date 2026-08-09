@@ -3,23 +3,38 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import type { DemoPersona } from "@/config/demo-personas";
 import { navigationItems } from "@/config/navigation";
 
 type PrimaryNavigationItemsProps = {
   locationId: string;
+  persona: DemoPersona;
   variant: "sidebar" | "mobile";
 };
 
 export function PrimaryNavigationItems({
   locationId,
+  persona,
   variant,
 }: PrimaryNavigationItemsProps) {
   const pathname = usePathname();
   const isSidebar = variant === "sidebar";
+  const visibleItems = navigationItems.filter((item) =>
+    persona.visiblePageHrefs.some((href) => href === item.href),
+  );
 
   return (
-    <ul className={isSidebar ? "space-y-1" : "grid grid-cols-5 px-1 sm:px-4"}>
-      {navigationItems.map((item) => {
+    <ul
+      className={isSidebar ? "space-y-1" : "grid px-1 sm:px-4"}
+      style={
+        isSidebar
+          ? undefined
+          : {
+              gridTemplateColumns: `repeat(${visibleItems.length}, minmax(0, 1fr))`,
+            }
+      }
+    >
+      {visibleItems.map((item) => {
         const isActive = item.available && pathname === item.href;
 
         return (
@@ -42,7 +57,7 @@ export function PrimaryNavigationItems({
                 }
                 href={{
                   pathname: item.href,
-                  query: { location: locationId },
+                  query: { location: locationId, persona: persona.id },
                 }}
               >
                 {item.label}

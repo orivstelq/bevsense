@@ -4,15 +4,15 @@ import { resolveDemoContextFromSearchParams } from "@/lib/demo-context";
 import { simulatedTelemetryProvider } from "@/lib/telemetry/simulated-provider";
 
 export default async function Home({ searchParams }: PageProps<"/">) {
-  const { context, scope } = await resolveDemoContextFromSearchParams(
+  const { context, persona, scope } = await resolveDemoContextFromSearchParams(
     searchParams,
     "/",
   );
   const snapshot = await simulatedTelemetryProvider.getSnapshot(scope);
 
   return (
-    <ApplicationShell context={context}>
-      <Overview snapshot={snapshot} />
+    <ApplicationShell context={context} persona={persona}>
+      <Overview persona={persona} snapshot={snapshot} />
     </ApplicationShell>
   );
 }
