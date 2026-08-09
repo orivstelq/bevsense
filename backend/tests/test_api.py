@@ -170,6 +170,11 @@ def test_openapi_exposes_only_versioned_operational_routes(
         "/api/v1/organizations/{organization_id}/locations/{location_id}/snapshot"
         in paths
     )
+    ingestion_path = (
+        "/api/v1/organizations/{organization_id}/locations/{location_id}"
+        "/controllers/{controller_id}/readings/{reading_id}"
+    )
+    assert "put" in paths[ingestion_path]
     assert "/health" not in paths
     assert (
         "/organizations/{organization_id}/locations/{location_id}/snapshot"

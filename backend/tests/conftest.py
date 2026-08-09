@@ -12,10 +12,14 @@ from app.db.engine import (
     create_database_engine,
     create_session_factory,
 )
-from app.dependencies import get_telemetry_service
+from app.dependencies import (
+    get_telemetry_ingestion_service,
+    get_telemetry_service,
+)
 from app.main import app
 from app.providers.database_telemetry import DatabaseTelemetryProvider
 from app.scripts.seed_demo_data import seed_demo_data
+from app.services.telemetry_ingestion_service import TelemetryIngestionService
 from app.services.telemetry_service import TelemetryService
 
 
@@ -67,6 +71,26 @@ def client(seeded_database: DatabaseFixture):
         provider=DatabaseTelemetryProvider(seeded_database.session_factory)
     )
     app.dependency_overrides[get_telemetry_service] = lambda: service
+
+    with TestClient(app) as test_client:
+        yield test_client
+
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def ingestion_client(seeded_database: DatabaseFixture):
+    telemetry_service = TelemetryService(
+        provider=DatabaseTelemetryProvider(seeded_database.session_factory)
+    )
+    ingestion_service = TelemetryIngestionService(
+        session_factory=seeded_database.session_factory,
+        enabled=True,
+    )
+    app.dependency_overrides[get_telemetry_service] = lambda: telemetry_service
+    app.dependency_overrides[get_telemetry_ingestion_service] = (
+        lambda: ingestion_service
+    )
 
     with TestClient(app) as test_client:
         yield test_client
