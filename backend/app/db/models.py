@@ -115,6 +115,10 @@ class ControllerCredentialRecord(Base):
         DateTime(timezone=True),
         nullable=False,
     )
+    revoked_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
 
 
 class SensorTrayRecord(Base):

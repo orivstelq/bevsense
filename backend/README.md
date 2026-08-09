@@ -120,7 +120,38 @@ unset BIB_CONTROLLER_TOKEN
 
 The sender reads the token only from `BIB_CONTROLLER_TOKEN`; it never accepts the token as a command-line argument or includes it in the URL/body. Refresh the existing frontend to retrieve the updated snapshot. Ingested data remains `simulated`. No WebSockets, SSE, or polling are used. If the backend read provider is deliberately set to `simulated`, ingestion is rejected because database writes would not appear in that provider's snapshots.
 
-This is a development controller-authentication foundation, not a production security system. It provides per-controller credentials and scope binding, but not human authentication, RBAC, rate limiting, credential rotation/revocation, or complete cryptographic replay protection. Reading-ID idempotency only prevents duplicate record creation. Production controller traffic requires HTTPS/TLS; local HTTP is for loopback development only.
+### Development credential lifecycle
+
+Credential lifecycle commands are local operator tools; there are no public credential-management endpoints. A credential is active while its `revoked_at` database field is null. Revocation sets that field once and permanently excludes the credential from authentication. Raw tokens remain one-time output from issuance and cannot be listed, recovered, or reconstructed from stored SHA-256 digests.
+
+List safe credential metadata for one exact controller scope:
+
+```bash
+python -m app.scripts.list_dev_controller_credentials \
+  --organization-id demo-organization \
+  --location-id demo-main-dining \
+  --controller-id demo-main-controller-01
+```
+
+The command prints credential IDs, creation times, active/revoked status, revocation times, and counts. It never prints raw tokens or digests.
+
+Use staged rotation so the controller can be verified before its prior credential is disabled:
+
+1. Issue credential B while credential A remains active.
+2. Configure and test the controller with B.
+3. Revoke A by its credential ID:
+
+```bash
+python -m app.scripts.revoke_dev_controller_credential \
+  --organization-id demo-organization \
+  --location-id demo-main-dining \
+  --controller-id demo-main-controller-01 \
+  --credential-id credential-a
+```
+
+Issuance never revokes older credentials automatically. Revoking an already revoked credential is idempotent and preserves its original revocation time. Revoking the final active credential is allowed, but the command emits a warning that the controller has no active credentials. There is no unrevoke operation; issue a new credential instead.
+
+This is a development controller-authentication foundation, not a production security system. It provides per-controller credentials, scope binding, and local issuance/list/revocation tools, but not human authentication, RBAC, rate limiting, credential expiration, automated rotation, audit history, or complete cryptographic replay protection. Reading-ID idempotency only prevents duplicate record creation. Production controller traffic requires HTTPS/TLS; local HTTP is for loopback development only.
 
 ## API and tests
 
@@ -142,4 +173,4 @@ Tests migrate and seed isolated temporary SQLite databases. They do not use the 
 
 ## Current boundaries
 
-Persisted seed and ingested readings remain simulated and do not represent physical hardware. Controller bearer credentials authenticate configured simulated controllers, but dashboard users still have no authentication or authorization. Credential lifecycle management, RBAC, rate limiting, physical hardware ingestion, MQTT, AWS, Docker, TLS deployment, and deployment configuration are not implemented. The SQLAlchemy models and Alembic migrations use portable relational types; PostgreSQL support and its driver will be added during deployment work.
+Persisted seed and ingested readings remain simulated and do not represent physical hardware. Controller bearer credentials authenticate configured simulated controllers, but dashboard users still have no authentication or authorization. Production credential provisioning, RBAC, rate limiting, physical hardware ingestion, MQTT, AWS, Docker, TLS deployment, and deployment configuration are not implemented. The SQLAlchemy models and Alembic migrations use portable relational types; PostgreSQL support and its driver will be added during deployment work.

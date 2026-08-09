@@ -63,9 +63,25 @@ def test_initial_migration_supports_downgrade_and_upgrade(
     with migrated_database.engine.connect() as connection:
         assert (
             MigrationContext.configure(connection).get_current_revision()
-            == "20260809_0002"
+            == "20260809_0003"
         )
 
+    credential_columns = {
+        column["name"]: column
+        for column in inspect(migrated_database.engine).get_columns(
+            "controller_credentials"
+        )
+    }
+    assert credential_columns["revoked_at"]["nullable"] is True
+    assert ControllerCredentialRecord.__table__.c.revoked_at.type.timezone is True
+
+    command.downgrade(migrated_database.alembic_config, "20260809_0002")
+    assert "revoked_at" not in {
+        column["name"]
+        for column in inspect(migrated_database.engine).get_columns(
+            "controller_credentials"
+        )
+    }
     command.downgrade(migrated_database.alembic_config, "20260808_0001")
     assert "controller_credentials" not in inspect(
         migrated_database.engine

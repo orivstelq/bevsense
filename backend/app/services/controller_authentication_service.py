@@ -54,7 +54,7 @@ class ControllerAuthenticationService:
     ) -> AuthenticatedController:
         candidate_digest = digest_controller_token(token)
         matched_credential_id: str | None = None
-        credentials = self.repository.get_controller_credentials(
+        credentials = self.repository.get_active_controller_credentials(
             session,
             organization_id,
             location_id,
@@ -115,6 +115,7 @@ class ControllerCredentialIssuanceService:
                     controller_id=controller_id,
                     token_sha256=digest_controller_token(token),
                     created_at=created_at,
+                    revoked_at=None,
                 ),
             )
 

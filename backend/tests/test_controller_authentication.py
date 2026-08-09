@@ -83,6 +83,7 @@ def test_issuance_persists_only_scoped_token_digest(
         assert record.token_sha256 != issued.token
         assert len(record.token_sha256) == 64
         assert record.created_at is not None
+        assert record.revoked_at is None
         assert issued.token not in {
             str(getattr(record, column.name))
             for column in ControllerCredentialRecord.__table__.columns
