@@ -1,5 +1,7 @@
 import type { OrganizationContext } from "@/types/organization-context";
 
+import { DemoLocationSwitcher } from "./demo-location-switcher";
+
 type TopHeaderProps = {
   context: OrganizationContext;
 };
@@ -34,6 +36,8 @@ export function TopHeader({ context }: TopHeaderProps) {
             )}
           </div>
         </div>
+
+        <DemoLocationSwitcher currentLocationId={context.location.id} />
 
         <div
           aria-label="Simulation mode is active"

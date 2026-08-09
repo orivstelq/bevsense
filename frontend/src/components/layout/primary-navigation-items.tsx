@@ -6,10 +6,12 @@ import { usePathname } from "next/navigation";
 import { navigationItems } from "@/config/navigation";
 
 type PrimaryNavigationItemsProps = {
+  locationId: string;
   variant: "sidebar" | "mobile";
 };
 
 export function PrimaryNavigationItems({
+  locationId,
   variant,
 }: PrimaryNavigationItemsProps) {
   const pathname = usePathname();
@@ -38,7 +40,10 @@ export function PrimaryNavigationItems({
                           : "border-transparent text-slate-600 hover:border-slate-300 hover:text-slate-950"
                       }`
                 }
-                href={item.href}
+                href={{
+                  pathname: item.href,
+                  query: { location: locationId },
+                }}
               >
                 {item.label}
               </Link>

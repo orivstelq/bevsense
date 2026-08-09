@@ -1,22 +1,25 @@
 import type { Metadata } from "next";
 
 import { ApplicationShell } from "@/components/layout/application-shell";
-import { demoContext } from "@/config/demo-context";
 import { Inventory } from "@/features/inventory/inventory";
+import { resolveDemoContextFromSearchParams } from "@/lib/demo-context";
 import { simulatedTelemetryProvider } from "@/lib/telemetry/simulated-provider";
 
 export const metadata: Metadata = {
   title: "Inventory | BiB Monitor",
 };
 
-export default async function InventoryPage() {
-  const snapshot = await simulatedTelemetryProvider.getSnapshot({
-    organizationId: demoContext.location.organizationId,
-    locationId: demoContext.location.id,
-  });
+export default async function InventoryPage({
+  searchParams,
+}: PageProps<"/inventory">) {
+  const { context, scope } = await resolveDemoContextFromSearchParams(
+    searchParams,
+    "/inventory",
+  );
+  const snapshot = await simulatedTelemetryProvider.getSnapshot(scope);
 
   return (
-    <ApplicationShell context={demoContext}>
+    <ApplicationShell context={context}>
       <Inventory snapshot={snapshot} />
     </ApplicationShell>
   );

@@ -1,22 +1,25 @@
 import type { Metadata } from "next";
 
 import { ApplicationShell } from "@/components/layout/application-shell";
-import { demoContext } from "@/config/demo-context";
 import { Devices } from "@/features/devices/devices";
+import { resolveDemoContextFromSearchParams } from "@/lib/demo-context";
 import { simulatedTelemetryProvider } from "@/lib/telemetry/simulated-provider";
 
 export const metadata: Metadata = {
   title: "Devices | BiB Monitor",
 };
 
-export default async function DevicesPage() {
-  const snapshot = await simulatedTelemetryProvider.getSnapshot({
-    organizationId: demoContext.location.organizationId,
-    locationId: demoContext.location.id,
-  });
+export default async function DevicesPage({
+  searchParams,
+}: PageProps<"/devices">) {
+  const { context, scope } = await resolveDemoContextFromSearchParams(
+    searchParams,
+    "/devices",
+  );
+  const snapshot = await simulatedTelemetryProvider.getSnapshot(scope);
 
   return (
-    <ApplicationShell context={demoContext}>
+    <ApplicationShell context={context}>
       <Devices snapshot={snapshot} />
     </ApplicationShell>
   );

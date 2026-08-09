@@ -14,11 +14,11 @@ type ApplicationShellProps = {
 export function ApplicationShell({ children, context }: ApplicationShellProps) {
   return (
     <div className="min-h-screen bg-slate-50 lg:grid lg:grid-cols-[15rem_minmax(0,1fr)]">
-      <SidebarNavigation />
+      <SidebarNavigation locationId={context.location.id} />
 
       <div className="min-w-0">
         <TopHeader context={context} />
-        <MobileNavigation />
+        <MobileNavigation locationId={context.location.id} />
 
         <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
           {children}

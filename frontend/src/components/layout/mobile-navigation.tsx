@@ -1,12 +1,16 @@
 import { PrimaryNavigationItems } from "./primary-navigation-items";
 
-export function MobileNavigation() {
+type MobileNavigationProps = {
+  locationId: string;
+};
+
+export function MobileNavigation({ locationId }: MobileNavigationProps) {
   return (
     <nav
       aria-label="Primary navigation"
       className="border-b border-slate-200 bg-white lg:hidden"
     >
-      <PrimaryNavigationItems variant="mobile" />
+      <PrimaryNavigationItems locationId={locationId} variant="mobile" />
     </nav>
   );
 }
