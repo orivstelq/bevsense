@@ -1,25 +1,34 @@
-const overviewStates = [
-  {
-    label: "Inventory",
-    state: "Awaiting telemetry",
-    description:
-      "Inventory levels will appear after a controller begins sending validated tray readings.",
-  },
-  {
-    label: "Alerts",
-    state: "Alert rules not configured",
-    description:
-      "Configure operational thresholds after inventory telemetry is available.",
-  },
-  {
-    label: "Controllers / Devices",
-    state: "No controller connected",
-    description:
-      "This demo environment is not connected to a physical controller or sensor tray.",
-  },
-] as const;
+import type { LocationTelemetrySnapshot } from "@/types/domain";
 
-export function Overview() {
+type OverviewProps = {
+  snapshot: LocationTelemetrySnapshot;
+};
+
+function pluralize(count: number, label: string) {
+  return `${count} ${label}${count === 1 ? "" : "s"}`;
+}
+
+export function Overview({ snapshot }: OverviewProps) {
+  const overviewStates = [
+    {
+      label: "Inventory",
+      state: pluralize(snapshot.inventoryItems.length, "assigned inventory item"),
+      description: `Simulated fixture assignments across ${pluralize(snapshot.sensorTrays.length, "configured tray")}.`,
+    },
+    {
+      label: "Alerts",
+      state: "Alert rules not configured",
+      description:
+        "Alert behavior and thresholds are not part of this simulation phase.",
+    },
+    {
+      label: "Controllers / Devices",
+      state: pluralize(snapshot.controllers.length, "simulated controller"),
+      description:
+        "Fixture data only; no physical controller or sensor tray is connected.",
+    },
+  ] as const;
+
   return (
     <div className="space-y-6 sm:space-y-8">
       <section aria-labelledby="overview-title">
@@ -60,7 +69,8 @@ export function Overview() {
             System status
           </h2>
           <p className="mt-1 text-sm text-slate-600">
-            Data will remain empty until the required setup is complete.
+            Counts below come from deterministic simulated data for this
+            location.
           </p>
         </div>
 
