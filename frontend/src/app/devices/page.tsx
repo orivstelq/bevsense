@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 
 import { ApplicationShell } from "@/components/layout/application-shell";
+import { TelemetryUnavailable } from "@/components/telemetry/telemetry-unavailable";
 import { Devices } from "@/features/devices/devices";
 import { resolveDemoContextFromSearchParams } from "@/lib/demo-context";
-import { simulatedTelemetryProvider } from "@/lib/telemetry/simulated-provider";
+import { loadLocationTelemetry } from "@/lib/telemetry/load-location-telemetry";
 
 export const metadata: Metadata = {
   title: "Devices | BiB Monitor",
@@ -16,11 +17,15 @@ export default async function DevicesPage({
     searchParams,
     "/devices",
   );
-  const snapshot = await simulatedTelemetryProvider.getSnapshot(scope);
+  const telemetry = await loadLocationTelemetry(scope);
 
   return (
     <ApplicationShell context={context} persona={persona}>
-      <Devices snapshot={snapshot} />
+      {telemetry.status === "ready" ? (
+        <Devices snapshot={telemetry.snapshot} />
+      ) : (
+        <TelemetryUnavailable />
+      )}
     </ApplicationShell>
   );
 }

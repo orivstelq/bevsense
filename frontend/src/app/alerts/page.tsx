@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 
 import { ApplicationShell } from "@/components/layout/application-shell";
+import { TelemetryUnavailable } from "@/components/telemetry/telemetry-unavailable";
 import { demoAlertPolicy } from "@/config/demo-alert-policy";
 import { Alerts } from "@/features/alerts/alerts";
 import { evaluateAlerts } from "@/lib/alerts/evaluate-alerts";
 import { resolveDemoContextFromSearchParams } from "@/lib/demo-context";
-import { simulatedTelemetryProvider } from "@/lib/telemetry/simulated-provider";
+import { loadLocationTelemetry } from "@/lib/telemetry/load-location-telemetry";
 
 export const metadata: Metadata = {
   title: "Alerts | BiB Monitor",
@@ -18,12 +19,18 @@ export default async function AlertsPage({
     searchParams,
     "/alerts",
   );
-  const snapshot = await simulatedTelemetryProvider.getSnapshot(scope);
-  const findings = evaluateAlerts(snapshot, demoAlertPolicy);
+  const telemetry = await loadLocationTelemetry(scope);
 
   return (
     <ApplicationShell context={context} persona={persona}>
-      <Alerts findings={findings} policy={demoAlertPolicy} />
+      {telemetry.status === "ready" ? (
+        <Alerts
+          findings={evaluateAlerts(telemetry.snapshot, demoAlertPolicy)}
+          policy={demoAlertPolicy}
+        />
+      ) : (
+        <TelemetryUnavailable />
+      )}
     </ApplicationShell>
   );
 }
