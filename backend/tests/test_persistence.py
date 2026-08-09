@@ -265,5 +265,5 @@ def test_invalid_backend_provider_and_database_url_fail_clearly() -> None:
     with pytest.raises(ValueError, match="either database or simulated"):
         create_telemetry_service("unknown")
 
-    with pytest.raises(ValueError, match="BIB_DATABASE_URL"):
+    with pytest.raises(ValueError, match="configured database URL"):
         create_database_engine("not-a-database-url")

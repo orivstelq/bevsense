@@ -15,7 +15,7 @@ simulated controller -> bearer credential -> TelemetryIngestionService
                      -> TelemetryIngestionRepository -> SQLAlchemy transaction
 ```
 
-Local development uses SQLite. Alembic owns schema history, and the demo seed command persists the same deterministic simulated snapshots used by the explicit backend simulation provider.
+Local development uses SQLite, while production database mode also supports PostgreSQL through synchronous SQLAlchemy and Psycopg 3. Alembic owns schema history, and the demo seed command persists the same deterministic simulated snapshots used by the explicit backend simulation provider.
 
 ## Local setup
 
@@ -32,13 +32,33 @@ python -m app.scripts.seed_demo_data
 uvicorn app.main:app --reload --port 8000
 ```
 
-The default database URL is `sqlite:///./bib-platform-dev.db`, creating `backend/bib-platform-dev.db` when migrations run. The file is ignored by Git. Override it through the process environment when needed:
+The default database URL is `sqlite:///./bib-platform-dev.db`, creating `backend/bib-platform-dev.db` when migrations run. The file is ignored by Git.
+
+## Database configuration
+
+Database URL precedence is:
+
+1. `BIB_DATABASE_URL`, the explicit BevSense override
+2. `DATABASE_URL`, commonly supplied by hosting platforms
+3. `sqlite:///./bib-platform-dev.db`, the local default
+
+Supported URL forms are `sqlite:///`, `postgres://`, `postgresql://`, and `postgresql+psycopg://`. PostgreSQL forms are normalized internally to the Psycopg 3 dialect without changing credentials, query parameters, or escaping. Database URLs can contain passwords and must be treated as secrets; never commit or log a production value.
+
+Local SQLite override:
 
 ```bash
 BIB_DATABASE_URL=sqlite:///./another-local.db
 ```
 
-Migrations and seeding are explicit operations. Application startup and API requests never create tables, seed data, or switch providers automatically.
+PostgreSQL SSL is optional unless configured. Set `BIB_DATABASE_SSLMODE` to a libpq mode such as `require`; SQLite does not receive PostgreSQL SSL options. PostgreSQL uses SQLAlchemy's standard pool with stale-connection pre-ping and no custom pool sizing.
+
+Migrations and seeding are explicit operations. Application startup and API requests never create tables, seed data, switch providers, or fall back from an unavailable configured PostgreSQL database to SQLite. Run migrations against the selected environment URL:
+
+```bash
+BIB_DATABASE_URL=sqlite:///./another-local.db alembic upgrade head
+```
+
+The demo seed command remains opt-in and must not be run automatically against production. A later Heroku phase will consume the platform-provided `DATABASE_URL`, configure `BIB_DATABASE_SSLMODE=require` (or stronger verified-certificate settings), and run migrations as an explicit release operation. Phase 2J does not create or configure Heroku resources.
 
 ## Provider selection
 
@@ -173,4 +193,4 @@ Tests migrate and seed isolated temporary SQLite databases. They do not use the 
 
 ## Current boundaries
 
-Persisted seed and ingested readings remain simulated and do not represent physical hardware. Controller bearer credentials authenticate configured simulated controllers, but dashboard users still have no authentication or authorization. Production credential provisioning, RBAC, rate limiting, physical hardware ingestion, MQTT, AWS, Docker, TLS deployment, and deployment configuration are not implemented. The SQLAlchemy models and Alembic migrations use portable relational types; PostgreSQL support and its driver will be added during deployment work.
+Persisted seed and ingested readings remain simulated and do not represent physical hardware. Controller bearer credentials authenticate configured simulated controllers, but dashboard users still have no authentication or authorization. Production credential provisioning, RBAC, rate limiting, physical hardware ingestion, MQTT, AWS, Docker, TLS deployment, and deployment configuration are not implemented. The same portable SQLAlchemy models, migrations, repositories, and services support SQLite and PostgreSQL; real managed-PostgreSQL deployment verification remains future work.
