@@ -15,6 +15,10 @@ from app.dependencies import (
 )
 from app.main import app
 from app.providers.database_telemetry import DatabaseTelemetryProvider
+from app.services.controller_authentication_service import (
+    ControllerCredentialIssuanceService,
+    IssuedControllerCredential,
+)
 from app.services.telemetry_ingestion_service import (
     TelemetryIngestionService,
     TelemetryIngestionUnavailableError,
@@ -111,41 +115,49 @@ def test_conflicting_reading_id_returns_409_without_mutation(
 
 
 @pytest.mark.parametrize(
-    ("url", "body"),
+    ("url", "body", "expected_status"),
     (
         (
             INGESTION_URL.replace("demo-organization", "unknown-organization"),
             VALID_BODY,
+            401,
         ),
         (
             INGESTION_URL.replace("demo-main-dining", "unknown-location"),
             VALID_BODY,
+            401,
         ),
         (
             INGESTION_URL.replace(
                 "demo-main-controller-01", "unknown-controller"
             ),
             VALID_BODY,
+            401,
         ),
-        (INGESTION_URL, {**VALID_BODY, "trayId": "unknown-tray"}),
+        (INGESTION_URL, {**VALID_BODY, "trayId": "unknown-tray"}, 404),
         (
             INGESTION_URL,
             {**VALID_BODY, "trayId": "demo-secondary-tray-01"},
+            404,
         ),
     ),
 )
-def test_unknown_or_cross_location_scope_returns_404(
+def test_authentication_precedes_scoped_tray_validation(
     ingestion_client: TestClient,
     seeded_database: DatabaseFixture,
     url: str,
     body: dict[str, object],
+    expected_status: int,
 ) -> None:
     response = ingestion_client.put(url, json=body)
 
-    assert response.status_code == 404
-    assert response.json() == {
-        "detail": "The requested controller and tray scope was not found."
-    }
+    assert response.status_code == expected_status
+    expected_detail = (
+        "Invalid controller credential."
+        if expected_status == 401
+        else "The requested controller and tray scope was not found."
+    )
+    assert response.json() == {"detail": expected_detail}
     assert reading_count(seeded_database) == 9
 
 
@@ -202,6 +214,7 @@ def test_non_finite_json_number_returns_422_without_writing(
 def test_disabled_ingestion_returns_503_without_affecting_reads(
     client: TestClient,
     seeded_database: DatabaseFixture,
+    main_controller_credential: IssuedControllerCredential,
 ) -> None:
     disabled_service = TelemetryIngestionService(
         session_factory=seeded_database.session_factory,
@@ -211,9 +224,17 @@ def test_disabled_ingestion_returns_503_without_affecting_reads(
         lambda: disabled_service
     )
 
-    response = client.put(INGESTION_URL, json=VALID_BODY)
+    missing_token_response = client.put(INGESTION_URL, json=VALID_BODY)
+    valid_token_response = client.put(
+        INGESTION_URL,
+        json=VALID_BODY,
+        headers={
+            "Authorization": f"Bearer {main_controller_credential.token}"
+        },
+    )
 
-    assert response.status_code == 503
+    assert missing_token_response.status_code == 503
+    assert valid_token_response.status_code == 503
     assert client.get("/api/v1/health").status_code == 200
     assert client.get(SNAPSHOT_URL).status_code == 200
     assert reading_count(seeded_database) == 9
@@ -235,6 +256,7 @@ def test_multiple_readings_preserve_history_and_appear_in_snapshot(
     assert reading_count(seeded_database) == 11
     assert snapshot["schemaVersion"] == "1.0"
     assert snapshot["dataSource"] == "simulated"
+    assert "credential" not in str(snapshot).lower()
     reading_ids = {reading["id"] for reading in snapshot["telemetryReadings"]}
     assert {
         "demo-main-reading-01",
@@ -269,6 +291,7 @@ def test_out_of_order_reading_is_retained_without_becoming_latest(
 
 def test_ingested_reading_survives_engine_and_provider_recreation(
     seeded_database: DatabaseFixture,
+    main_controller_credential: IssuedControllerCredential,
 ) -> None:
     service = TelemetryIngestionService(
         session_factory=seeded_database.session_factory,
@@ -279,6 +302,7 @@ def test_ingested_reading_survives_engine_and_provider_recreation(
         location_id="demo-main-dining",
         controller_id="demo-main-controller-01",
         reading_id="phase2f-reading-001",
+        controller_token=main_controller_credential.token,
         tray_id="demo-main-tray-01",
         timestamp=datetime(2026, 8, 9, 5, 0, tzinfo=UTC),
         gross_weight_grams=4650.0,
@@ -299,6 +323,7 @@ def test_ingested_reading_survives_engine_and_provider_recreation(
 
 def test_transaction_rolls_back_when_repository_write_fails(
     seeded_database: DatabaseFixture,
+    main_controller_credential: IssuedControllerCredential,
 ) -> None:
     class FailingRepository(TelemetryIngestionRepository):
         def add_reading(self, session, reading) -> None:
@@ -317,6 +342,7 @@ def test_transaction_rolls_back_when_repository_write_fails(
             location_id="demo-main-dining",
             controller_id="demo-main-controller-01",
             reading_id="phase2f-reading-001",
+            controller_token=main_controller_credential.token,
             tray_id="demo-main-tray-01",
             timestamp=datetime(2026, 8, 9, 5, 0, tzinfo=UTC),
             gross_weight_grams=4650.0,
@@ -337,6 +363,7 @@ def test_simulated_read_provider_rejects_database_ingestion() -> None:
             location_id="demo-main-dining",
             controller_id="demo-main-controller-01",
             reading_id="phase2f-reading-001",
+            controller_token="unused",
             tray_id="demo-main-tray-01",
             timestamp=datetime(2026, 8, 9, 5, 0, tzinfo=UTC),
             gross_weight_grams=4650.0,
@@ -352,6 +379,14 @@ def test_reading_id_is_globally_unique_across_locations(
         "/api/v1/organizations/demo-organization/locations/demo-secondary-dining"
         "/controllers/demo-secondary-controller-01/readings/phase2f-reading-001"
     )
+    secondary_credential = ControllerCredentialIssuanceService(
+        seeded_database.session_factory
+    ).issue(
+        organization_id="demo-organization",
+        location_id="demo-secondary-dining",
+        controller_id="demo-secondary-controller-01",
+        credential_id="test-secondary-credential",
+    )
 
     response = ingestion_client.put(
         secondary_url,
@@ -359,6 +394,9 @@ def test_reading_id_is_globally_unique_across_locations(
             "trayId": "demo-secondary-tray-01",
             "timestamp": "2026-08-09T05:00:00Z",
             "grossWeightGrams": 4650.0,
+        },
+        headers={
+            "Authorization": f"Bearer {secondary_credential.token}",
         },
     )
 
@@ -375,7 +413,11 @@ def test_unmigrated_database_fails_without_fallback(tmp_path: Path) -> None:
     app.dependency_overrides[get_telemetry_ingestion_service] = lambda: service
 
     with TestClient(app, raise_server_exceptions=False) as client:
-        response = client.put(INGESTION_URL, json=VALID_BODY)
+        response = client.put(
+            INGESTION_URL,
+            json=VALID_BODY,
+            headers={"Authorization": "Bearer unavailable-database-token"},
+        )
 
     app.dependency_overrides.clear()
     engine.dispose()

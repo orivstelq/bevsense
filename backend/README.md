@@ -10,7 +10,8 @@ API route -> TelemetryService -> DatabaseTelemetryProvider
 Development-only writes use a separate path:
 
 ```text
-simulated controller -> PUT API -> TelemetryIngestionService
+simulated controller -> bearer credential -> TelemetryIngestionService
+                     -> ControllerAuthenticationService
                      -> TelemetryIngestionRepository -> SQLAlchemy transaction
 ```
 
@@ -64,7 +65,7 @@ BIB_BACKEND_TELEMETRY_PROVIDER=database
 BIB_INGESTION_ENABLED=true
 ```
 
-`BIB_INGESTION_ENABLED` is a development feature gate, not authentication or authorization. Phase 2F has no device credentials, signed requests, replay protection beyond reading-ID idempotency, or production security controls.
+`BIB_INGESTION_ENABLED` is a development feature gate, not authentication or authorization. Each controller must also present its own opaque credential as `Authorization: Bearer <controller-token>`. The database stores only the credential's SHA-256 digest, bound to the exact organization, location, and controller. Raw tokens are shown once by the local issuance command and cannot be recovered from the server.
 
 The versioned endpoint is:
 
@@ -74,18 +75,35 @@ PUT /api/v1/organizations/{organization_id}/locations/{location_id}/controllers/
 
 It accepts `trayId`, a timezone-aware `timestamp`, and nonnegative finite `grossWeightGrams`. The server assigns `dataSource: simulated`. Reading IDs are globally unique: a new immutable reading returns `201`, an equivalent retry returns `200`, and conflicting reuse returns `409`. Readings are appended to history; no inventory assignment or derived values are changed.
 
-For a disposable local demo, migrate and seed a database, enable ingestion, and run FastAPI:
+There is no public credential-provisioning API. For a disposable local demo, migrate and seed a database:
 
 ```bash
-export BIB_DATABASE_URL=sqlite:///./phase2f-demo.db
-export BIB_BACKEND_TELEMETRY_PROVIDER=database
-export BIB_INGESTION_ENABLED=true
+export BIB_DATABASE_URL=sqlite:///./phase2g-demo.db
 alembic upgrade head
 python -m app.scripts.seed_demo_data
+```
+
+Issue a credential and capture its one-time raw token in the simulated controller's environment:
+
+```bash
+export BIB_CONTROLLER_TOKEN="$(
+  python -m app.scripts.issue_dev_controller_credential \
+    --organization-id demo-organization \
+    --location-id demo-main-dining \
+    --controller-id demo-main-controller-01 \
+    --print-token-only
+)"
+```
+
+Start FastAPI in database mode with ingestion enabled:
+
+```bash
+export BIB_BACKEND_TELEMETRY_PROVIDER=database
+export BIB_INGESTION_ENABLED=true
 uvicorn app.main:app --reload --port 8000
 ```
 
-In another activated backend terminal, send a deterministic reading through HTTP:
+In another activated backend terminal with `BIB_CONTROLLER_TOKEN` exported, send a deterministic reading through HTTP:
 
 ```bash
 python -m app.scripts.send_simulated_reading \
@@ -93,12 +111,16 @@ python -m app.scripts.send_simulated_reading \
   --location-id demo-main-dining \
   --controller-id demo-main-controller-01 \
   --tray-id demo-main-tray-01 \
-  --reading-id phase2f-manual-reading-001 \
-  --timestamp 2026-08-09T05:00:00Z \
-  --gross-weight-grams 4650
+  --reading-id phase2g-manual-reading-001 \
+  --timestamp 2026-08-09T18:00:00Z \
+  --gross-weight-grams 10900
+
+unset BIB_CONTROLLER_TOKEN
 ```
 
-Refresh the existing frontend to retrieve the updated snapshot. Phase 2F adds no WebSockets, SSE, or polling. If the backend read provider is deliberately set to `simulated`, database ingestion is rejected because writes would not appear in that provider's snapshots.
+The sender reads the token only from `BIB_CONTROLLER_TOKEN`; it never accepts the token as a command-line argument or includes it in the URL/body. Refresh the existing frontend to retrieve the updated snapshot. Ingested data remains `simulated`. No WebSockets, SSE, or polling are used. If the backend read provider is deliberately set to `simulated`, ingestion is rejected because database writes would not appear in that provider's snapshots.
+
+This is a development controller-authentication foundation, not a production security system. It provides per-controller credentials and scope binding, but not human authentication, RBAC, rate limiting, credential rotation/revocation, or complete cryptographic replay protection. Reading-ID idempotency only prevents duplicate record creation. Production controller traffic requires HTTPS/TLS; local HTTP is for loopback development only.
 
 ## API and tests
 
@@ -120,4 +142,4 @@ Tests migrate and seed isolated temporary SQLite databases. They do not use the 
 
 ## Current boundaries
 
-Persisted seed and ingested readings remain simulated and do not represent physical hardware. Controller IDs and organization/location paths scope data but do not prove identity or provide authorization. Authentication, user authorization, rate limiting, physical hardware ingestion, MQTT, AWS, Docker, and deployment configuration are not implemented. The SQLAlchemy models and Alembic migration use portable relational types; PostgreSQL support and its driver will be added during deployment work.
+Persisted seed and ingested readings remain simulated and do not represent physical hardware. Controller bearer credentials authenticate configured simulated controllers, but dashboard users still have no authentication or authorization. Credential lifecycle management, RBAC, rate limiting, physical hardware ingestion, MQTT, AWS, Docker, TLS deployment, and deployment configuration are not implemented. The SQLAlchemy models and Alembic migrations use portable relational types; PostgreSQL support and its driver will be added during deployment work.

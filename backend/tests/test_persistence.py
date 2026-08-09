@@ -9,6 +9,7 @@ from sqlalchemy.exc import IntegrityError, OperationalError
 
 from app.db.engine import create_database_engine, create_session_factory
 from app.db.models import (
+    ControllerCredentialRecord,
     ControllerRecord,
     InventoryItemRecord,
     LocationRecord,
@@ -26,6 +27,7 @@ from tests.conftest import DatabaseFixture
 
 EXPECTED_TABLES = {
     "alembic_version",
+    "controller_credentials",
     "controllers",
     "inventory_items",
     "locations",
@@ -61,9 +63,13 @@ def test_initial_migration_supports_downgrade_and_upgrade(
     with migrated_database.engine.connect() as connection:
         assert (
             MigrationContext.configure(connection).get_current_revision()
-            == "20260808_0001"
+            == "20260809_0002"
         )
 
+    command.downgrade(migrated_database.alembic_config, "20260808_0001")
+    assert "controller_credentials" not in inspect(
+        migrated_database.engine
+    ).get_table_names()
     command.downgrade(migrated_database.alembic_config, "base")
     assert inspect(migrated_database.engine).get_table_names() == [
         "alembic_version"
@@ -85,6 +91,13 @@ def test_demo_seed_is_idempotent(seeded_database: DatabaseFixture) -> None:
     assert table_counts(seeded_database) == expected
     assert seed_demo_data(seeded_database.session_factory) == expected
     assert table_counts(seeded_database) == expected
+    with seeded_database.session_factory() as session:
+        assert (
+            session.scalar(
+                select(func.count()).select_from(ControllerCredentialRecord)
+            )
+            == 0
+        )
 
 
 @pytest.mark.parametrize(

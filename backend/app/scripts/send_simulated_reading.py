@@ -1,11 +1,12 @@
 import argparse
 import json
+from os import environ
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 
 
-def _arguments() -> argparse.Namespace:
+def _arguments(arguments: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Send one simulated telemetry reading through the FastAPI API."
     )
@@ -17,7 +18,7 @@ def _arguments() -> argparse.Namespace:
     parser.add_argument("--reading-id", required=True)
     parser.add_argument("--timestamp", required=True)
     parser.add_argument("--gross-weight-grams", required=True, type=float)
-    return parser.parse_args()
+    return parser.parse_args(arguments)
 
 
 def _endpoint(arguments: argparse.Namespace) -> str:
@@ -37,8 +38,12 @@ def _endpoint(arguments: argparse.Namespace) -> str:
     return f"{arguments.base_url.rstrip('/')}/{path}"
 
 
-def main() -> int:
-    arguments = _arguments()
+def _controller_token() -> str | None:
+    token = environ.get("BIB_CONTROLLER_TOKEN", "").strip()
+    return token or None
+
+
+def _request(arguments: argparse.Namespace, token: str) -> Request:
     body = json.dumps(
         {
             "trayId": arguments.tray_id,
@@ -46,15 +51,26 @@ def main() -> int:
             "grossWeightGrams": arguments.gross_weight_grams,
         }
     ).encode()
-    request = Request(
+    return Request(
         _endpoint(arguments),
         data=body,
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        },
         method="PUT",
     )
 
+
+def main(arguments: list[str] | None = None) -> int:
+    arguments = _arguments(arguments)
+    token = _controller_token()
+    if token is None:
+        print("Request not sent: BIB_CONTROLLER_TOKEN is missing or empty.")
+        return 1
+
     try:
-        with urlopen(request, timeout=5) as response:
+        with urlopen(_request(arguments, token), timeout=5) as response:
             payload = json.load(response)
             print(f"HTTP {response.status}")
             print(f"readingId={payload['readingId']}")

@@ -19,6 +19,10 @@ from app.dependencies import (
 from app.main import app
 from app.providers.database_telemetry import DatabaseTelemetryProvider
 from app.scripts.seed_demo_data import seed_demo_data
+from app.services.controller_authentication_service import (
+    ControllerCredentialIssuanceService,
+    IssuedControllerCredential,
+)
 from app.services.telemetry_ingestion_service import TelemetryIngestionService
 from app.services.telemetry_service import TelemetryService
 
@@ -79,7 +83,24 @@ def client(seeded_database: DatabaseFixture):
 
 
 @pytest.fixture
-def ingestion_client(seeded_database: DatabaseFixture):
+def main_controller_credential(
+    seeded_database: DatabaseFixture,
+) -> IssuedControllerCredential:
+    return ControllerCredentialIssuanceService(
+        seeded_database.session_factory
+    ).issue(
+        organization_id="demo-organization",
+        location_id="demo-main-dining",
+        controller_id="demo-main-controller-01",
+        credential_id="test-main-credential",
+    )
+
+
+@pytest.fixture
+def ingestion_client(
+    seeded_database: DatabaseFixture,
+    main_controller_credential: IssuedControllerCredential,
+):
     telemetry_service = TelemetryService(
         provider=DatabaseTelemetryProvider(seeded_database.session_factory)
     )
@@ -92,7 +113,12 @@ def ingestion_client(seeded_database: DatabaseFixture):
         lambda: ingestion_service
     )
 
-    with TestClient(app) as test_client:
+    with TestClient(
+        app,
+        headers={
+            "Authorization": f"Bearer {main_controller_credential.token}"
+        },
+    ) as test_client:
         yield test_client
 
     app.dependency_overrides.clear()

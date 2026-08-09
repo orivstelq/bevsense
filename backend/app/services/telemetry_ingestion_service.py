@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Literal
 
@@ -7,6 +7,10 @@ from sqlalchemy.exc import IntegrityError
 from app.db.engine import SessionFactory
 from app.db.ingestion_repository import TelemetryIngestionRepository
 from app.db.models import TelemetryReadingRecord
+from app.services.controller_authentication_service import (
+    ControllerAuthenticationService,
+    InvalidControllerCredentialError,
+)
 
 
 SIMULATED_DATA_SOURCE: Literal["simulated"] = "simulated"
@@ -66,7 +70,12 @@ def _matches(
 class TelemetryIngestionService:
     session_factory: SessionFactory | None
     enabled: bool
-    repository: TelemetryIngestionRepository = TelemetryIngestionRepository()
+    repository: TelemetryIngestionRepository = field(
+        default_factory=TelemetryIngestionRepository
+    )
+    authentication_service: ControllerAuthenticationService = field(
+        default_factory=ControllerAuthenticationService
+    )
 
     def ingest(
         self,
@@ -75,6 +84,7 @@ class TelemetryIngestionService:
         location_id: str,
         controller_id: str,
         reading_id: str,
+        controller_token: str | None,
         tray_id: str,
         timestamp: datetime,
         gross_weight_grams: float,
@@ -86,6 +96,10 @@ class TelemetryIngestionService:
         if self.session_factory is None:
             raise TelemetryIngestionUnavailableError(
                 "Telemetry ingestion requires the database telemetry provider."
+            )
+        if not controller_token:
+            raise InvalidControllerCredentialError(
+                "Invalid controller credential."
             )
 
         candidate = TelemetryReadingRecord(
@@ -100,17 +114,25 @@ class TelemetryIngestionService:
         )
 
         try:
-            return self._ingest(candidate)
+            return self._ingest(candidate, controller_token)
         except IntegrityError as error:
             return self._resolve_concurrent_duplicate(candidate, error)
 
     def _ingest(
         self,
         candidate: TelemetryReadingRecord,
+        controller_token: str,
     ) -> TelemetryIngestionResult:
         assert self.session_factory is not None
         with self.session_factory.begin() as session:
-            if not self.repository.scope_exists(
+            self.authentication_service.authenticate(
+                session,
+                organization_id=candidate.organization_id,
+                location_id=candidate.location_id,
+                controller_id=candidate.controller_id,
+                token=controller_token,
+            )
+            if not self.repository.tray_exists(
                 session,
                 candidate.organization_id,
                 candidate.location_id,

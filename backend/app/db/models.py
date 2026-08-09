@@ -82,6 +82,41 @@ class ControllerRecord(Base):
     )
 
 
+class ControllerCredentialRecord(Base):
+    __tablename__ = "controller_credentials"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id", "location_id", "controller_id"],
+            [
+                "controllers.organization_id",
+                "controllers.location_id",
+                "controllers.id",
+            ],
+            name="fk_controller_credentials_controller_scope",
+        ),
+        UniqueConstraint(
+            "token_sha256",
+            name="uq_controller_credentials_token_sha256",
+        ),
+        Index(
+            "ix_controller_credentials_controller_scope",
+            "organization_id",
+            "location_id",
+            "controller_id",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    location_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    controller_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    token_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+
+
 class SensorTrayRecord(Base):
     __tablename__ = "sensor_trays"
     __table_args__ = (

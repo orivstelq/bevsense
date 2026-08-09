@@ -6,8 +6,10 @@ from fastapi import (
     HTTPException,
     Path,
     Response,
+    Security,
     status,
 )
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.dependencies import get_telemetry_ingestion_service
 from app.models.ingestion import (
@@ -21,9 +23,17 @@ from app.services.telemetry_ingestion_service import (
     TelemetryIngestionUnavailableError,
     TelemetryReadingConflictError,
 )
+from app.services.controller_authentication_service import (
+    InvalidControllerCredentialError,
+)
 
 
 router = APIRouter(tags=["Telemetry ingestion"])
+controller_bearer = HTTPBearer(
+    auto_error=False,
+    scheme_name="ControllerBearer",
+    description="Opaque per-controller bearer credential for telemetry ingestion.",
+)
 
 
 @router.put(
@@ -33,6 +43,7 @@ router = APIRouter(tags=["Telemetry ingestion"])
     status_code=status.HTTP_201_CREATED,
     responses={
         200: {"description": "The identical reading already exists."},
+        401: {"description": "The controller credential is missing or invalid."},
         404: {"description": "The requested device scope does not exist."},
         409: {"description": "The reading ID has conflicting immutable data."},
         503: {"description": "Development telemetry ingestion is disabled."},
@@ -40,7 +51,8 @@ router = APIRouter(tags=["Telemetry ingestion"])
     summary="Ingest one simulated controller reading",
     description=(
         "Development-only, append-only simulated telemetry ingestion. "
-        "Disabled by default and not protected by device authentication."
+        "Disabled by default and authenticated with an opaque controller bearer "
+        "credential. Human authentication and authorization are not implemented."
     ),
 )
 def ingest_telemetry_reading(
@@ -50,6 +62,10 @@ def ingest_telemetry_reading(
     reading_id: Annotated[str, Path(min_length=1)],
     request: TelemetryIngestionRequest,
     response: Response,
+    credentials: Annotated[
+        HTTPAuthorizationCredentials | None,
+        Security(controller_bearer),
+    ],
     service: Annotated[
         TelemetryIngestionService,
         Depends(get_telemetry_ingestion_service),
@@ -61,10 +77,22 @@ def ingest_telemetry_reading(
             location_id=location_id,
             controller_id=controller_id,
             reading_id=reading_id,
+            controller_token=(
+                credentials.credentials
+                if credentials is not None
+                and credentials.scheme.lower() == "bearer"
+                else None
+            ),
             tray_id=request.tray_id,
             timestamp=request.timestamp,
             gross_weight_grams=request.gross_weight_grams,
         )
+    except InvalidControllerCredentialError as error:
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            str(error),
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from None
     except TelemetryIngestionScopeNotFoundError as error:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(error)) from None
     except TelemetryReadingConflictError as error:
