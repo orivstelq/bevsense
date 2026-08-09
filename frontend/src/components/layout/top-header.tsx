@@ -1,4 +1,5 @@
 import type { DemoPersona } from "@/config/demo-personas";
+import { TelemetryAutoRefresh } from "@/components/telemetry/telemetry-auto-refresh";
 import type { OrganizationContext } from "@/types/organization-context";
 
 import { DemoContextControls } from "./demo-context-controls";
@@ -43,6 +44,8 @@ export function TopHeader({ context, persona }: TopHeaderProps) {
           currentLocationId={context.location.id}
           persona={persona}
         />
+
+        <TelemetryAutoRefresh />
 
         <div
           aria-label="Simulation mode is active"

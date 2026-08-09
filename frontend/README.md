@@ -22,4 +22,6 @@ BIB_API_BASE_URL=http://127.0.0.1:8000
 
 Set `BIB_TELEMETRY_PROVIDER=simulated` to deliberately use the existing frontend fixtures without FastAPI. HTTP mode never falls back automatically; an unavailable API produces a telemetry-unavailable state. These modes still represent simulation—not physical hardware.
 
+Telemetry-driven routes auto-refresh every five seconds through Next.js `router.refresh()`. The browser does not call FastAPI directly: server components rerun the existing server-only telemetry loader, whose HTTP requests use `cache: "no-store"`. Refresh pauses while the tab is hidden, resumes with an immediate refresh when visible, and remains near-real-time polling—not WebSocket or streaming telemetry. `BIB_API_BASE_URL` remains server-only.
+
 Run `npm run verify:telemetry-contract`, `npm run lint`, and `npm run build` before submitting frontend changes.
