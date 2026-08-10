@@ -8,7 +8,7 @@ import {
   resolveDemoContextFromSearchParams,
 } from "@/lib/demo-context";
 import { getHardwareConnectionsEnabled } from "@/lib/product-environment";
-import { loadLocationTelemetry } from "@/lib/telemetry/load-location-telemetry";
+import { loadDemoLocationTelemetry } from "@/lib/telemetry/load-location-telemetry";
 
 export default async function Home({ searchParams }: PageProps<"/">) {
   if (!(await isExplicitDemoMode(searchParams))) {
@@ -19,16 +19,24 @@ export default async function Home({ searchParams }: PageProps<"/">) {
     );
   }
 
-  const { context, persona, scope, showDemoStarted } =
+  const { context, language, persona, scope, showDemoStarted } =
     await resolveDemoContextFromSearchParams(searchParams, "/");
-  const telemetry = await loadLocationTelemetry(scope);
+  const telemetry = await loadDemoLocationTelemetry(scope);
 
   return (
     <>
       {showDemoStarted && <DemoStartedNotice />}
-      <ApplicationShell context={context} persona={persona}>
+      <ApplicationShell
+        context={context}
+        language={language}
+        persona={persona}
+      >
         {telemetry.status === "ready" ? (
-          <Overview persona={persona} snapshot={telemetry.snapshot} />
+          <Overview
+            language={language}
+            persona={persona}
+            snapshot={telemetry.snapshot}
+          />
         ) : (
           <TelemetryUnavailable />
         )}

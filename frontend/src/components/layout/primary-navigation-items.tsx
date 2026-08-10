@@ -4,21 +4,28 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import type { DemoPersona } from "@/config/demo-personas";
+import {
+  getDemoTranslations,
+  type DemoLanguage,
+} from "@/config/demo-translations";
 import { navigationItems } from "@/config/navigation";
 
 type PrimaryNavigationItemsProps = {
   locationId: string;
   persona: DemoPersona;
+  language: DemoLanguage;
   variant: "sidebar" | "mobile";
 };
 
 export function PrimaryNavigationItems({
   locationId,
   persona,
+  language,
   variant,
 }: PrimaryNavigationItemsProps) {
   const pathname = usePathname();
   const isSidebar = variant === "sidebar";
+  const copy = getDemoTranslations(language);
   const visibleItems = navigationItems.filter((item) =>
     persona.visiblePageHrefs.some((href) => href === item.href),
   );
@@ -30,7 +37,7 @@ export function PrimaryNavigationItems({
         isSidebar
           ? undefined
           : {
-              gridTemplateColumns: `repeat(${visibleItems.length}, minmax(0, 1fr))`,
+              gridTemplateColumns: `repeat(${visibleItems.length <= 4 ? visibleItems.length : 3}, minmax(0, 1fr))`,
             }
       }
     >
@@ -61,10 +68,11 @@ export function PrimaryNavigationItems({
                     mode: "demo",
                     location: locationId,
                     persona: persona.id,
+                    lang: language,
                   },
                 }}
               >
-                {item.label}
+                {copy.navigation[item.translationKey]}
               </Link>
             ) : (
               <span
@@ -75,7 +83,7 @@ export function PrimaryNavigationItems({
                     : "flex min-h-12 items-center justify-center border-b-2 border-transparent px-1 text-[13px] text-slate-400 sm:px-3 sm:text-sm"
                 }
               >
-                {item.label}
+                {copy.navigation[item.translationKey]}
                 {isSidebar && (
                   <span className="text-xs text-slate-500">Planned</span>
                 )}

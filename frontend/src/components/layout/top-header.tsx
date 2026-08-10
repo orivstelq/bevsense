@@ -1,4 +1,5 @@
 import type { DemoPersona } from "@/config/demo-personas";
+import type { DemoLanguage } from "@/config/demo-translations";
 import { BevSenseBrand } from "@/components/brand/bevsense-brand";
 import { TelemetryAutoRefresh } from "@/components/telemetry/telemetry-auto-refresh";
 import type { OrganizationContext } from "@/types/organization-context";
@@ -8,9 +9,10 @@ import { DemoContextControls } from "./demo-context-controls";
 type TopHeaderProps = {
   context: OrganizationContext;
   persona: DemoPersona;
+  language: DemoLanguage;
 };
 
-export function TopHeader({ context, persona }: TopHeaderProps) {
+export function TopHeader({ context, language, persona }: TopHeaderProps) {
   return (
     <header className="border-b border-slate-200 bg-white">
       <div className="mx-auto flex min-h-20 w-full max-w-7xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-4 sm:px-6 lg:px-8">
@@ -26,6 +28,7 @@ export function TopHeader({ context, persona }: TopHeaderProps) {
 
         <DemoContextControls
           currentLocationId={context.location.id}
+          language={language}
           persona={persona}
         />
 

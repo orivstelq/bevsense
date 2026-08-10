@@ -42,6 +42,7 @@ export default function DemoEntryPage() {
                   mode: "demo",
                   location: demoContext.location.id,
                   persona: defaultDemoPersona.id,
+                  lang: "en",
                   started: "1",
                 },
               }}

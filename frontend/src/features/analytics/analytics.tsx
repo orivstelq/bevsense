@@ -1,3 +1,7 @@
+import {
+  getDemoTranslations,
+  type DemoLanguage,
+} from "@/config/demo-translations";
 import type { SnapshotAnalytics } from "@/types/analytics";
 
 import { AnalyticsSummary } from "./analytics-summary";
@@ -5,6 +9,7 @@ import { InventoryDistribution } from "./inventory-distribution";
 
 type AnalyticsProps = {
   analytics: SnapshotAnalytics;
+  language: DemoLanguage;
 };
 
 function MetricList({
@@ -29,7 +34,8 @@ function MetricList({
   );
 }
 
-export function Analytics({ analytics }: AnalyticsProps) {
+export function Analytics({ analytics, language }: AnalyticsProps) {
+  const copy = getDemoTranslations(language);
   const configurationMetrics = [
     {
       label: "Configured trays",
@@ -90,7 +96,7 @@ export function Analytics({ analytics }: AnalyticsProps) {
           className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl"
           id="analytics-title"
         >
-          Analytics
+          {copy.navigation.analytics}
         </h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">
           Current inventory, telemetry coverage, and demo findings for this
@@ -111,7 +117,10 @@ export function Analytics({ analytics }: AnalyticsProps) {
 
       <AnalyticsSummary analytics={analytics} />
 
-      <InventoryDistribution levels={analytics.currentInventoryLevels} />
+      <InventoryDistribution
+        language={language}
+        levels={analytics.currentInventoryLevels}
+      />
 
       <section
         aria-labelledby="snapshot-breakdown-title"

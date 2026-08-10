@@ -1,5 +1,8 @@
-import { deriveInventoryState } from "@/lib/inventory-calculations";
-import { selectLatestReadingForTray } from "@/lib/telemetry/selectors";
+import {
+  getDemoTranslations,
+  type DemoLanguage,
+} from "@/config/demo-translations";
+import { deriveCurrentInventoryEntries } from "@/lib/inventory/current-inventory";
 import type { LocationTelemetrySnapshot } from "@/types/domain";
 
 import { InventorySummary } from "./inventory-summary";
@@ -7,45 +10,12 @@ import { InventoryTrayCard } from "./inventory-tray-card";
 
 type InventoryProps = {
   snapshot: LocationTelemetrySnapshot;
+  language: DemoLanguage;
 };
 
-export function Inventory({ snapshot }: InventoryProps) {
-  const trayEntries = snapshot.sensorTrays.map((tray) => {
-    const inventoryItem =
-      snapshot.inventoryItems.find(
-        (item) =>
-          item.organizationId === snapshot.organizationId &&
-          item.locationId === snapshot.locationId &&
-          item.trayId === tray.id,
-      ) ?? null;
-    const latestReading = selectLatestReadingForTray(
-      snapshot.telemetryReadings,
-      {
-        organizationId: snapshot.organizationId,
-        locationId: snapshot.locationId,
-        trayId: tray.id,
-      },
-    );
-    const controller =
-      snapshot.controllers.find(
-        (candidate) =>
-          candidate.organizationId === snapshot.organizationId &&
-          candidate.locationId === snapshot.locationId &&
-          candidate.id === tray.controllerId,
-      ) ?? null;
-    const derivedState =
-      inventoryItem && latestReading
-        ? deriveInventoryState(latestReading, inventoryItem)
-        : null;
-
-    return {
-      tray,
-      inventoryItem,
-      latestReading,
-      controller,
-      derivedState,
-    };
-  });
+export function Inventory({ snapshot, language }: InventoryProps) {
+  const copy = getDemoTranslations(language);
+  const trayEntries = deriveCurrentInventoryEntries(snapshot);
   const assignedItemCount = trayEntries.filter(
     (entry) => entry.inventoryItem !== null,
   ).length;
@@ -58,10 +28,10 @@ export function Inventory({ snapshot }: InventoryProps) {
           className="mt-1 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl"
           id="inventory-title"
         >
-          Inventory
+          {copy.navigation.inventory}
         </h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">
-          Current BiB assignments and derived product levels by sensor tray.
+          {copy.inventoryDescription}
         </p>
       </section>
 
@@ -70,7 +40,7 @@ export function Inventory({ snapshot }: InventoryProps) {
           DETERMINISTIC SIMULATION DATA
         </h2>
         <p className="mt-1 text-sm leading-6 text-amber-900">
-          Inventory levels below are derived from fixed demo fixtures, not live
+          Inventory levels are derived from fixed fixture weights, not live
           physical sensor readings.
         </p>
       </aside>
@@ -78,45 +48,57 @@ export function Inventory({ snapshot }: InventoryProps) {
       <InventorySummary
         assignedItemCount={assignedItemCount}
         configuredTrayCount={trayEntries.length}
+        language={language}
         unassignedTrayCount={trayEntries.length - assignedItemCount}
       />
 
-      <section aria-labelledby="tray-inventory-title">
+      <section aria-labelledby="rack-inventory-title">
         <div className="mb-4">
           <h2
             className="text-lg font-semibold text-slate-950"
-            id="tray-inventory-title"
+            id="rack-inventory-title"
           >
-            Tray inventory
+            {copy.rackInventory}
           </h2>
           <p className="mt-1 text-sm leading-6 text-slate-600">
-            Level labels are simulation display bands only, not operational
-            alert thresholds.
+            Three racks with ten monitored BiB positions each.
           </p>
         </div>
 
-        {trayEntries.length > 0 ? (
-          <div className="overflow-hidden rounded-md border border-slate-200 shadow-sm">
-            <div className="hidden grid-cols-[minmax(10rem,1.2fr)_minmax(10rem,1.2fr)_minmax(8rem,0.8fr)_minmax(11rem,1.15fr)_minmax(10rem,1fr)] gap-5 border-b border-slate-200 bg-slate-100 px-5 py-3 text-xs font-semibold uppercase tracking-[0.1em] text-slate-600 xl:grid">
-              <span>Tray</span>
-              <span>Product</span>
-              <span>Remaining</span>
-              <span>Latest reading</span>
-              <span>Controller</span>
-            </div>
-            <ul className="divide-y divide-slate-200">
-              {trayEntries.map((entry) => (
-                <li key={entry.tray.id}>
-                  <InventoryTrayCard {...entry} />
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : (
-          <div className="rounded-md border border-slate-200 bg-white p-5 text-sm text-slate-600">
-            No sensor trays are configured for this location.
-          </div>
-        )}
+        <div className="space-y-6">
+          {[1, 2, 3].map((rackNumber) => {
+            const rackEntries = trayEntries.filter(
+              (entry) => entry.rackPosition?.rackNumber === rackNumber,
+            );
+
+            return (
+              <section
+                aria-labelledby={`rack-${rackNumber}-title`}
+                className="rounded-md border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
+                key={rackNumber}
+              >
+                <div className="mb-4 flex items-center justify-between gap-4 border-b border-slate-200 pb-3">
+                  <h3
+                    className="text-base font-semibold text-slate-950"
+                    id={`rack-${rackNumber}-title`}
+                  >
+                    {copy.rack} {rackNumber}
+                  </h3>
+                  <span className="text-xs font-medium text-slate-500">
+                    {rackEntries.length} {copy.positions}
+                  </span>
+                </div>
+                <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                  {rackEntries.map((entry) => (
+                    <li className="min-w-0" key={entry.tray.id}>
+                      <InventoryTrayCard entry={entry} language={language} />
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            );
+          })}
+        </div>
       </section>
     </div>
   );

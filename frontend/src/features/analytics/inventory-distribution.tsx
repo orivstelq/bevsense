@@ -1,12 +1,20 @@
+import {
+  getDemoTranslations,
+  type DemoLanguage,
+} from "@/config/demo-translations";
+import { getInventoryLevelPresentation } from "@/config/inventory-levels";
 import type { CurrentInventoryLevel } from "@/types/analytics";
 
 type InventoryDistributionProps = {
   levels: readonly CurrentInventoryLevel[];
+  language: DemoLanguage;
 };
 
 export function InventoryDistribution({
   levels,
+  language,
 }: InventoryDistributionProps) {
+  const copy = getDemoTranslations(language);
   return (
     <section aria-labelledby="inventory-distribution-title">
       <div className="mb-4">
@@ -25,7 +33,10 @@ export function InventoryDistribution({
       {levels.length > 0 ? (
         <ul className="divide-y divide-slate-200 overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
           {levels.map((level) => {
-            const roundedPercentage = Math.round(level.remainingPercentage);
+            const presentation = getInventoryLevelPresentation(
+              level.remainingPercentage,
+            );
+            const levelLabel = copy[presentation.band];
 
             return (
               <li className="min-w-0 px-4 py-4 sm:px-5" key={level.inventoryItemId}>
@@ -39,23 +50,26 @@ export function InventoryDistribution({
                     </p>
                   </div>
                   <span className="shrink-0 text-lg font-semibold text-slate-950">
-                    {roundedPercentage}%
+                    {presentation.roundedPercentage}%
                   </span>
                 </div>
                 <div
                   aria-label={`${level.productName} remaining`}
                   aria-valuemax={100}
                   aria-valuemin={0}
-                  aria-valuenow={level.remainingPercentage}
-                  aria-valuetext={`${roundedPercentage}% remaining in the current simulated snapshot`}
+                  aria-valuenow={presentation.roundedPercentage}
+                  aria-valuetext={`${presentation.roundedPercentage}% remaining, ${levelLabel}`}
                   className="mt-3 h-2 w-full overflow-hidden rounded-sm bg-slate-200"
                   role="progressbar"
                 >
                   <div
-                    className="h-full bg-slate-700"
-                    style={{ width: `${level.remainingPercentage}%` }}
+                    className={`h-full ${presentation.barClassName}`}
+                    style={{ width: `${presentation.roundedPercentage}%` }}
                   />
                 </div>
+                <p className="mt-2 text-xs font-medium text-slate-600">
+                  {levelLabel}
+                </p>
               </li>
             );
           })}

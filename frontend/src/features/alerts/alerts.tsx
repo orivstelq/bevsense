@@ -1,28 +1,28 @@
-import type { AlertPolicy, DerivedAlertFinding } from "@/types/alerts";
-
-import { AlertFindingCard } from "./alert-finding-card";
-import { AlertsSummary } from "./alerts-summary";
+import {
+  getDemoTranslations,
+  type DemoLanguage,
+} from "@/config/demo-translations";
+import { getInventoryLevelPresentation } from "@/config/inventory-levels";
+import { deriveCurrentInventoryEntries } from "@/lib/inventory/current-inventory";
+import type { LocationTelemetrySnapshot } from "@/types/domain";
 
 type AlertsProps = {
-  findings: readonly DerivedAlertFinding[];
-  policy: AlertPolicy;
+  snapshot: LocationTelemetrySnapshot;
+  locationName: string;
+  language: DemoLanguage;
 };
 
-function policyResultLabel(result: "warning" | "critical" | null) {
-  return result ?? "no finding";
-}
+export function Alerts({ snapshot, locationName, language }: AlertsProps) {
+  const copy = getDemoTranslations(language);
+  const replacements = deriveCurrentInventoryEntries(snapshot)
+    .map((entry) => {
+      const percentage = entry.derivedState?.remainingPercentage;
+      const level =
+        percentage == null ? null : getInventoryLevelPresentation(percentage);
 
-export function Alerts({ findings, policy }: AlertsProps) {
-  const criticalCount = findings.filter(
-    (finding) => finding.severity === "critical",
-  ).length;
-  const warningCount = findings.filter(
-    (finding) => finding.severity === "warning",
-  ).length;
-  const deviceFindingCount = findings.filter(
-    (finding) =>
-      finding.kind === "controller-status" || finding.kind === "tray-status",
-  ).length;
+      return { entry, level };
+    })
+    .filter(({ entry, level }) => entry.inventoryItem && level?.band === "replace");
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -32,117 +32,81 @@ export function Alerts({ findings, policy }: AlertsProps) {
           className="mt-1 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl"
           id="alerts-title"
         >
-          Alerts
+          {copy.navigation.alerts}
         </h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">
-          Current findings derived locally from the location snapshot.
+          {copy.alertsDescription}
         </p>
       </section>
 
       <aside className="rounded-r-md border-l-4 border-amber-500 bg-amber-50 px-4 py-4 sm:px-5">
         <h2 className="text-sm font-bold tracking-[0.08em] text-amber-950">
-          DETERMINISTIC SIMULATION DATA
+          DEMO REPLACEMENT VIEW
         </h2>
         <p className="mt-1 text-sm leading-6 text-amber-900">
-          These are current derived demo findings, not persisted alerts. No
-          acknowledgement, notification, or historical alert system is active.
+          This action list shows only assigned BiBs at 10% remaining or below
+          in the deterministic simulation snapshot.
         </p>
       </aside>
 
-      <AlertsSummary
-        activeCount={findings.length}
-        criticalCount={criticalCount}
-        deviceFindingCount={deviceFindingCount}
-        warningCount={warningCount}
-      />
-
-      <section aria-labelledby="demo-policy-title">
-        <div className="rounded-md border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-          <h2
-            className="text-lg font-semibold text-slate-950"
-            id="demo-policy-title"
-          >
-            {policy.name}
-          </h2>
-          <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">
-            These simulation-only values demonstrate evaluation architecture.
-            They are not production operating thresholds, manufacturer
-            guidance, or customer policy.
-          </p>
-
-          <div className="mt-5 grid gap-5 md:grid-cols-3">
-            <div>
-              <h3 className="text-sm font-semibold text-slate-900">
-                Inventory
-              </h3>
-              <ul className="mt-2 space-y-1 text-sm leading-6 text-slate-600">
-                <li>
-                  Critical: ≤
-                  {policy.inventory.criticalAtOrBelowPercentage}%
-                </li>
-                <li>
-                  Warning: &gt;
-                  {policy.inventory.criticalAtOrBelowPercentage}% to ≤
-                  {policy.inventory.warningAtOrBelowPercentage}%
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-slate-900">
-                Controllers
-              </h3>
-              <ul className="mt-2 space-y-1 text-sm leading-6 text-slate-600">
-                <li>
-                  Online → {policyResultLabel(policy.controllerStatus.online)}
-                </li>
-                <li>
-                  Offline → {policyResultLabel(policy.controllerStatus.offline)}
-                </li>
-                <li>
-                  Unknown → {policyResultLabel(policy.controllerStatus.unknown)}
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-slate-900">
-                Sensor trays
-              </h3>
-              <ul className="mt-2 space-y-1 text-sm leading-6 text-slate-600">
-                <li>Ready → {policyResultLabel(policy.trayStatus.ready)}</li>
-                <li>Offline → {policyResultLabel(policy.trayStatus.offline)}</li>
-                <li>Fault → {policyResultLabel(policy.trayStatus.fault)}</li>
-                <li>Unknown → {policyResultLabel(policy.trayStatus.unknown)}</li>
-              </ul>
-            </div>
+      <section aria-labelledby="replacement-list-title">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2
+              className="text-lg font-semibold text-slate-950"
+              id="replacement-list-title"
+            >
+              {copy.replace}
+            </h2>
+            <p className="mt-1 text-sm text-slate-600">{locationName}</p>
           </div>
-        </div>
-      </section>
-
-      <section aria-labelledby="active-findings-title">
-        <div className="mb-4">
-          <h2
-            className="text-lg font-semibold text-slate-950"
-            id="active-findings-title"
-          >
-            Active findings
-          </h2>
-          <p className="mt-1 text-sm leading-6 text-slate-600">
-            Findings are recalculated from the current deterministic snapshot;
-            they are not historical events.
-          </p>
+          <span className="text-sm font-semibold text-slate-700">
+            {replacements.length}{" "}
+            {replacements.length === 1
+              ? copy.position.toLowerCase()
+              : copy.positions}
+          </span>
         </div>
 
-        {findings.length > 0 ? (
-          <ul className="space-y-3">
-            {findings.map((finding) => (
-              <li key={finding.id}>
-                <AlertFindingCard finding={finding} />
+        {replacements.length > 0 ? (
+          <ul className="grid gap-3 lg:grid-cols-2">
+            {replacements.map(({ entry, level }) => (
+              <li key={entry.tray.id}>
+                <article className="h-full rounded-md border border-l-4 border-red-300 border-l-red-600 bg-white p-4 shadow-sm sm:p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="break-words text-base font-semibold text-slate-950">
+                        {entry.inventoryItem?.productName}
+                      </h3>
+                      <p className="mt-1 text-sm text-slate-600">
+                        {locationName} · {copy.rack} {entry.rackPosition?.rackNumber} · {copy.position} {entry.rackPosition?.positionNumber}
+                      </p>
+                    </div>
+                    <span className="rounded-sm border border-red-300 bg-red-50 px-2 py-1 text-xs font-semibold text-red-800">
+                      {copy.replace}
+                    </span>
+                  </div>
+                  <p className="mt-5 text-2xl font-semibold text-red-700">
+                    {level?.roundedPercentage}%
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {copy.remaining}
+                  </p>
+                </article>
               </li>
             ))}
           </ul>
         ) : (
-          <div className="rounded-md border border-slate-200 bg-white p-5 text-sm text-slate-600">
-            No active findings under the current demo policy.
+          <div className="rounded-md border border-emerald-200 bg-emerald-50 p-5 sm:p-6">
+            <h3 className="text-lg font-semibold text-emerald-900">
+              {copy.allGood}
+            </h3>
+            <p className="mt-2 text-sm font-medium text-emerald-900">
+              {copy.noReplacements}
+            </p>
+            <p className="mt-1 text-sm leading-6 text-emerald-800">
+              {copy.aboveThreshold}
+            </p>
           </div>
         )}
       </section>

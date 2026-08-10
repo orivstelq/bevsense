@@ -1,35 +1,67 @@
-import { demoAlertPolicy } from "@/config/demo-alert-policy";
 import type { DemoPersona } from "@/config/demo-personas";
-import { evaluateAlerts } from "@/lib/alerts/evaluate-alerts";
+import {
+  getDemoTranslations,
+  type DemoLanguage,
+} from "@/config/demo-translations";
+import { getInventoryLevelPresentation } from "@/config/inventory-levels";
+import { deriveCurrentInventoryEntries } from "@/lib/inventory/current-inventory";
 import type { LocationTelemetrySnapshot } from "@/types/domain";
 
 type OverviewProps = {
   persona: DemoPersona;
   snapshot: LocationTelemetrySnapshot;
+  language: DemoLanguage;
 };
 
 function pluralize(count: number, label: string) {
   return `${count} ${label}${count === 1 ? "" : "s"}`;
 }
 
-export function Overview({ persona, snapshot }: OverviewProps) {
-  const alertFindings = evaluateAlerts(snapshot, demoAlertPolicy);
+export function Overview({ language, persona, snapshot }: OverviewProps) {
+  const copy = getDemoTranslations(language);
+  const entries = deriveCurrentInventoryEntries(snapshot);
+  const percentages = entries.flatMap((entry) =>
+    entry.derivedState?.remainingPercentage == null
+      ? []
+      : [entry.derivedState.remainingPercentage],
+  );
+  const replacementCount = percentages.filter(
+    (percentage) =>
+      getInventoryLevelPresentation(percentage).band === "replace",
+  ).length;
+  const rackCount = new Set(
+    entries.flatMap((entry) =>
+      entry.rackPosition ? [entry.rackPosition.rackNumber] : [],
+    ),
+  ).size;
+  const averagePercentage =
+    percentages.length > 0
+      ? percentages.reduce((sum, percentage) => sum + percentage, 0) /
+        percentages.length
+      : null;
   const overviewStates = [
     {
-      label: "Inventory",
-      state: pluralize(snapshot.inventoryItems.length, "assigned inventory item"),
-      description: `Simulated fixture assignments across ${pluralize(snapshot.sensorTrays.length, "configured tray")}.`,
+      label: copy.configuredPositions,
+      state: pluralize(snapshot.sensorTrays.length, "position"),
+      description: `${snapshot.inventoryItems.length} assigned BiBs in this location.`,
     },
     {
-      label: "Alerts",
-      state: pluralize(alertFindings.length, "active demo finding"),
-      description: "Derived locally under the simulation-only demo alert policy.",
+      label: copy.rack,
+      state: pluralize(rackCount, "rack"),
+      description: "Ten monitored positions per rack.",
     },
     {
-      label: "Controllers / Devices",
-      state: pluralize(snapshot.controllers.length, "simulated controller"),
-      description:
-        "Fixture data only; no physical controller or sensor tray is connected.",
+      label: copy.replace,
+      state: pluralize(replacementCount, "position"),
+      description: "Assigned BiBs at 10% remaining or below.",
+    },
+    {
+      label: "Average inventory",
+      state:
+        averagePercentage === null
+          ? "Unavailable"
+          : `${Math.round(averagePercentage)}%`,
+      description: "Current average across valid simulated inventory levels.",
     },
   ] as const;
 
@@ -41,10 +73,10 @@ export function Overview({ persona, snapshot }: OverviewProps) {
           className="mt-1 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl"
           id="overview-title"
         >
-          Overview
+          {copy.navigation.overview}
         </h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">
-          Current readiness for inventory monitoring at this location.
+          {copy.overviewDescription}
         </p>
       </section>
 
@@ -110,7 +142,7 @@ export function Overview({ persona, snapshot }: OverviewProps) {
           </p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {overviewStates.map((item) => (
             <article
               className="min-w-0 rounded-md border border-slate-200 bg-white p-5 shadow-sm"

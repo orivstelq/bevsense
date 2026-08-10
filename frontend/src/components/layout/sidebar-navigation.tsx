@@ -1,4 +1,5 @@
 import type { DemoPersona } from "@/config/demo-personas";
+import type { DemoLanguage } from "@/config/demo-translations";
 import { BevSenseBrand } from "@/components/brand/bevsense-brand";
 
 import { PrimaryNavigationItems } from "./primary-navigation-items";
@@ -6,11 +7,13 @@ import { PrimaryNavigationItems } from "./primary-navigation-items";
 type SidebarNavigationProps = {
   locationId: string;
   persona: DemoPersona;
+  language: DemoLanguage;
 };
 
 export function SidebarNavigation({
   locationId,
   persona,
+  language,
 }: SidebarNavigationProps) {
   return (
     <aside className="sticky top-0 hidden h-screen border-r border-slate-200 bg-slate-950 text-slate-100 lg:flex lg:flex-col">
@@ -22,6 +25,7 @@ export function SidebarNavigation({
         <PrimaryNavigationItems
           locationId={locationId}
           persona={persona}
+          language={language}
           variant="sidebar"
         />
       </nav>

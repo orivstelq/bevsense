@@ -1,18 +1,26 @@
+import {
+  getDemoTranslations,
+  type DemoLanguage,
+} from "@/config/demo-translations";
+
 type InventorySummaryProps = {
   configuredTrayCount: number;
   assignedItemCount: number;
   unassignedTrayCount: number;
+  language: DemoLanguage;
 };
 
 export function InventorySummary({
   configuredTrayCount,
   assignedItemCount,
   unassignedTrayCount,
+  language,
 }: InventorySummaryProps) {
+  const copy = getDemoTranslations(language);
   const summaryItems = [
-    { label: "Configured trays", value: configuredTrayCount },
-    { label: "Assigned BiBs", value: assignedItemCount },
-    { label: "Unassigned trays", value: unassignedTrayCount },
+    { label: copy.configuredPositions, value: configuredTrayCount },
+    { label: copy.assignedBibs, value: assignedItemCount },
+    { label: copy.unassignedPositions, value: unassignedTrayCount },
   ] as const;
 
   return (

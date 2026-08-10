@@ -10,6 +10,10 @@ import {
   findDemoPersona,
   getDemoPersonaDestination,
 } from "@/config/demo-personas";
+import {
+  isDemoLanguage,
+  type DemoLanguage,
+} from "@/config/demo-translations";
 import type { LocationScope } from "@/types/domain";
 import type { OrganizationContext } from "@/types/organization-context";
 
@@ -31,6 +35,7 @@ export async function resolveDemoContextFromSearchParams(
     mode: requestedMode,
     location: requestedLocationId,
     persona: requestedPersonaId,
+    lang: requestedLanguage,
     started: requestedStarted,
   } = params;
 
@@ -43,6 +48,8 @@ export async function resolveDemoContextFromSearchParams(
       typeof requestedLocationId !== "string") ||
     (requestedPersonaId !== undefined &&
       typeof requestedPersonaId !== "string") ||
+    (requestedLanguage !== undefined &&
+      typeof requestedLanguage !== "string") ||
     (requestedStarted !== undefined && requestedStarted !== "1")
   ) {
     notFound();
@@ -50,13 +57,17 @@ export async function resolveDemoContextFromSearchParams(
 
   const locationId = requestedLocationId ?? demoContext.location.id;
   const personaId = requestedPersonaId ?? defaultDemoPersona.id;
+  const languageValue = requestedLanguage ?? "en";
 
   const location = Object.values(demoLocations).find(
     (candidate) => candidate.id === locationId,
   );
   const persona = findDemoPersona(personaId);
+  const language: DemoLanguage | null = isDemoLanguage(languageValue)
+    ? languageValue
+    : null;
 
-  if (!location || !persona) {
+  if (!location || !persona || !language) {
     notFound();
   }
 
@@ -64,6 +75,7 @@ export async function resolveDemoContextFromSearchParams(
     mode: "demo",
     location: location.id,
     persona: persona.id,
+    lang: language,
   });
   if (requestedStarted === "1") {
     query.set("started", "1");
@@ -74,12 +86,14 @@ export async function resolveDemoContextFromSearchParams(
       key !== "mode" &&
       key !== "location" &&
       key !== "persona" &&
+      key !== "lang" &&
       key !== "started",
   );
 
   if (
     requestedLocationId === undefined ||
     requestedPersonaId === undefined ||
+    requestedLanguage === undefined ||
     hasUnsupportedParams ||
     destination !== pathname
   ) {
@@ -99,6 +113,7 @@ export async function resolveDemoContextFromSearchParams(
   return {
     context,
     persona,
+    language,
     scope,
     showDemoStarted: requestedStarted === "1",
   } as const;
