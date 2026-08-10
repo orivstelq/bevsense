@@ -41,34 +41,32 @@ export async function loadHumanAccount(accessToken: string) {
   } as const;
 }
 
+export async function getValidatedHumanAccessToken() {
+  try {
+    const { createSupabaseServerClient } = await import("@/lib/supabase/server");
+    const supabase = await createSupabaseServerClient();
+    const { data: claimsData, error } = await supabase.auth.getClaims();
+    if (error || !claimsData?.claims) return null;
+    const { data } = await supabase.auth.getSession();
+    return data.session?.access_token ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getAuthenticatedHumanAccount() {
-  const { createSupabaseServerClient } = await import("@/lib/supabase/server");
-  const supabase = await createSupabaseServerClient();
-  const { data: claimsData, error } = await supabase.auth.getClaims();
-  if (error || !claimsData?.claims) return null;
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
-  if (!token) return null;
+  const accessToken = await getValidatedHumanAccessToken();
+  if (!accessToken) return null;
 
   try {
-    return (await loadHumanAccount(token)).account;
+    return (await loadHumanAccount(accessToken)).account;
   } catch {
     return null;
   }
 }
 
 export async function getHumanSessionState(): Promise<HumanSessionState> {
-  let supabase;
-  try {
-    const { createSupabaseServerClient } = await import("@/lib/supabase/server");
-    supabase = await createSupabaseServerClient();
-  } catch {
-    return { status: "signed-out" };
-  }
-  const { data: claimsData, error } = await supabase.auth.getClaims();
-  if (error || !claimsData?.claims) return { status: "signed-out" };
-  const { data } = await supabase.auth.getSession();
-  const accessToken = data.session?.access_token;
+  const accessToken = await getValidatedHumanAccessToken();
   if (!accessToken) return { status: "signed-out" };
 
   try {

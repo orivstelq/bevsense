@@ -1,4 +1,5 @@
 import { approveAccess, rejectAccess } from "@/app/access-requests/actions";
+import { AccessRequestSubmitButton } from "@/features/auth/access-request-submit-button";
 import type { AuthenticatedRole, HumanAccount } from "@/lib/auth/human-account";
 import type {
   AccessRequest,
@@ -134,12 +135,7 @@ function AccessRequestCard({
             Workplace applies to Utility Worker and Technician access.
           </p>
         </div>
-        <button
-          className="min-h-11 rounded-md bg-slate-950 px-4 text-sm font-semibold text-white outline-none hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 sm:col-span-2 sm:justify-self-end"
-          type="submit"
-        >
-          Approve Access
-        </button>
+        <AccessRequestSubmitButton intent="approve" />
       </form>
 
       <form action={rejectAccess} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
@@ -155,12 +151,7 @@ function AccessRequestCard({
             name="reviewNote"
           />
         </div>
-        <button
-          className="min-h-11 rounded-md border border-red-300 bg-white px-4 text-sm font-semibold text-red-800 outline-none hover:bg-red-50 focus-visible:ring-2 focus-visible:ring-red-500"
-          type="submit"
-        >
-          Reject
-        </button>
+        <AccessRequestSubmitButton intent="reject" />
       </form>
     </li>
   );

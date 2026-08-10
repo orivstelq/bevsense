@@ -7,7 +7,10 @@ import { AccessRequestList } from "@/features/auth/access-request-list";
 import { signOut } from "@/app/login/actions";
 import { loadAccessRequestReview } from "@/lib/auth/access-onboarding";
 import { getHumanAuthEnabled } from "@/lib/auth/auth-environment";
-import { getHumanSessionState } from "@/lib/auth/human-account";
+import {
+  getValidatedHumanAccessToken,
+  loadHumanAccount,
+} from "@/lib/auth/human-account";
 
 export const metadata: Metadata = { title: "Access Requests | BevSense" };
 
@@ -20,19 +23,17 @@ export default async function AccessRequestsPage({
 }: AccessRequestsPageProps) {
   const params = await searchParams;
   if (params.mode !== undefined || !getHumanAuthEnabled()) redirect("/");
-  const state = await getHumanSessionState();
-  if (state.status !== "active") redirect("/");
-  const isReviewer = state.account.memberships.some((membership) =>
+  const accessToken = await getValidatedHumanAccessToken();
+  if (!accessToken) redirect("/");
+  const [accountResult, review] = await Promise.all([
+    loadHumanAccount(accessToken).catch(() => null),
+    loadAccessRequestReview(accessToken).catch(() => null),
+  ]);
+  if (!accountResult?.account) redirect("/");
+  const isReviewer = accountResult.account.memberships.some((membership) =>
     ["supervisor-manager", "organization-admin"].includes(membership.role),
   );
   if (!isReviewer) redirect("/");
-
-  let review = null;
-  try {
-    review = await loadAccessRequestReview(state.accessToken);
-  } catch {
-    review = null;
-  }
   const result = typeof params.result === "string" ? params.result : null;
 
   return (
@@ -95,7 +96,7 @@ export default async function AccessRequestsPage({
           )}
 
           {review ? (
-            <AccessRequestList account={state.account} review={review} />
+            <AccessRequestList account={accountResult.account} review={review} />
           ) : (
             <div className="mt-8 rounded-md border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm">
               Access requests are temporarily unavailable.

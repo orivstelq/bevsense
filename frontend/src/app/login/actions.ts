@@ -5,9 +5,9 @@ import { redirect } from "next/navigation";
 import { getHumanAuthEnabled } from "@/lib/auth/auth-environment";
 import {
   ensureAccessRequestFromMetadata,
+  hasAccessRequestMetadata,
   loadAccessStatus,
 } from "@/lib/auth/access-onboarding";
-import { loadHumanAccount } from "@/lib/auth/human-account";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type LoginState = { error: string | null };
@@ -35,13 +35,8 @@ export async function signIn(
     return { error: "Unable to sign in with those credentials." };
   }
 
-  try {
-    const account = await loadHumanAccount(data.session.access_token);
-    if (!account.account) {
-      if (account.status !== 403) {
-        await supabase.auth.signOut();
-        return { error: "BevSense account access is temporarily unavailable." };
-      }
+  if (data.user && hasAccessRequestMetadata(data.user)) {
+    try {
       const accessStatus = await loadAccessStatus(data.session.access_token);
       if (accessStatus.status === "no-request") {
         await ensureAccessRequestFromMetadata(
@@ -49,10 +44,9 @@ export async function signIn(
           data.user,
         );
       }
+    } catch {
+      redirect("/");
     }
-  } catch {
-    await supabase.auth.signOut();
-    return { error: "BevSense account access is temporarily unavailable." };
   }
 
   redirect("/");

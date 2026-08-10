@@ -7,7 +7,7 @@ import {
   approveAccessRequest,
   rejectAccessRequest,
 } from "@/lib/auth/access-onboarding";
-import { getHumanSessionState } from "@/lib/auth/human-account";
+import { getValidatedHumanAccessToken } from "@/lib/auth/human-account";
 import type { SelfServiceRole } from "@/types/access-onboarding";
 
 const approvableRoles = new Set<SelfServiceRole>([
@@ -22,16 +22,9 @@ function textField(formData: FormData, name: string) {
 }
 
 async function reviewerToken() {
-  const state = await getHumanSessionState();
-  if (state.status !== "active") redirect("/");
-  if (
-    !state.account.memberships.some((membership) =>
-      ["supervisor-manager", "organization-admin"].includes(membership.role),
-    )
-  ) {
-    redirect("/");
-  }
-  return state.accessToken;
+  const accessToken = await getValidatedHumanAccessToken();
+  if (!accessToken) redirect("/");
+  return accessToken;
 }
 
 export async function approveAccess(formData: FormData) {

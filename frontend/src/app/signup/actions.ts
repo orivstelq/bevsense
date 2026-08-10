@@ -99,7 +99,7 @@ export async function createAccount(
       email,
       password,
       options: {
-        emailRedirectTo: `${getApplicationBaseUrl()}/auth/confirm`,
+        emailRedirectTo: `${getApplicationBaseUrl()}/login?confirmation=success`,
         data: {
           full_name: fullName,
           requested_organization_id: organizationId,
@@ -135,6 +135,6 @@ export async function createAccount(
   return {
     status: "confirmation-required",
     message:
-      "Check your work email to verify your account. After verification, your access request will be submitted for review.",
+      "Check your work email to verify your account. After verification, sign in to submit your access request for review.",
   };
 }

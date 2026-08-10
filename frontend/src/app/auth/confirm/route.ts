@@ -17,32 +17,47 @@ const emailOtpTypes = new Set<EmailOtpType>([
   "email_change",
 ]);
 
+function confirmationFailed(request: NextRequest) {
+  return NextResponse.redirect(
+    new URL("/login?confirmation=failed", request.url),
+  );
+}
+
 export async function GET(request: NextRequest) {
   if (!getHumanAuthEnabled() || !getSelfSignupEnabled()) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
-  const tokenHash = request.nextUrl.searchParams.get("token_hash");
-  const type = request.nextUrl.searchParams.get("type");
-  if (!tokenHash || !type || !emailOtpTypes.has(type as EmailOtpType)) {
-    return NextResponse.redirect(
-      new URL("/login?confirmation=failed", request.url),
-    );
+  const tokenHashes = request.nextUrl.searchParams.getAll("token_hash");
+  const types = request.nextUrl.searchParams.getAll("type");
+  const tokenHashFlow =
+    tokenHashes.length === 1 &&
+    tokenHashes[0].length > 0 &&
+    types.length === 1 &&
+    emailOtpTypes.has(types[0] as EmailOtpType);
+  if (!tokenHashFlow) {
+    return confirmationFailed(request);
   }
 
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.auth.verifyOtp({
-    token_hash: tokenHash,
-    type: type as EmailOtpType,
-  });
-  if (error || !data.session || !data.user) {
-    return NextResponse.redirect(
-      new URL("/login?confirmation=failed", request.url),
-    );
+  let data;
+  try {
+    const result = await supabase.auth.verifyOtp({
+      token_hash: tokenHashes[0],
+      type: types[0] as EmailOtpType,
+    });
+    if (result.error || !result.data.session || !result.data.user) {
+      return confirmationFailed(request);
+    }
+    data = result.data;
+  } catch {
+    return confirmationFailed(request);
   }
+  const { session, user } = data;
+  if (!session || !user) return confirmationFailed(request);
   try {
     const submitted = await ensureAccessRequestFromMetadata(
-      data.session.access_token,
-      data.user,
+      session.access_token,
+      user,
     );
     if (!submitted) throw new Error("Signup request metadata is unavailable.");
   } catch {

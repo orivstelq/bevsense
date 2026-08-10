@@ -123,6 +123,15 @@ export async function ensureAccessRequestFromMetadata(
   accessToken: string,
   user: User,
 ) {
+  const request = accessRequestFromMetadata(user);
+  if (!request) return false;
+  await submitAccessRequest(accessToken, request);
+  return true;
+}
+
+function accessRequestFromMetadata(
+  user: User,
+): AccessRequestSubmission | null {
   const fullName = user.user_metadata.full_name;
   const organizationId = user.user_metadata.requested_organization_id;
   const locationId = user.user_metadata.requested_location_id;
@@ -134,13 +143,16 @@ export async function ensureAccessRequestFromMetadata(
     typeof requestedRole !== "string" ||
     !selfServiceRoles.has(requestedRole as SelfServiceRole)
   ) {
-    return false;
+    return null;
   }
-  await submitAccessRequest(accessToken, {
+  return {
     fullName,
     organizationId,
     locationId,
     requestedRole: requestedRole as SelfServiceRole,
-  });
-  return true;
+  };
+}
+
+export function hasAccessRequestMetadata(user: User) {
+  return accessRequestFromMetadata(user) !== null;
 }
