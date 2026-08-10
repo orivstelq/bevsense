@@ -1,314 +1,160 @@
-import { demoLocations, demoOrganization } from "@/config/demo-context";
+import {
+  demoLocations,
+  demoOrganization,
+} from "../../config/demo-context.ts";
 import type {
   Controller,
+  ContainerSizeGallons,
   InventoryItem,
+  Location,
   LocationTelemetrySnapshot,
   SensorTray,
   TelemetryReading,
 } from "@/types/domain";
-
-const mainDiningScope = {
-  organizationId: demoOrganization.id,
-  locationId: demoLocations.mainDining.id,
-} as const;
-
-const secondaryDiningScope = {
-  organizationId: demoOrganization.id,
-  locationId: demoLocations.secondaryDining.id,
-} as const;
 
 const demoContainerWeights = {
   2.5: { tareWeightGrams: 600, fullProductWeightGrams: 12_500 },
   5: { tareWeightGrams: 900, fullProductWeightGrams: 25_000 },
 } as const;
 
-const mainDiningControllerId = "demo-main-controller-01";
-const secondaryDiningControllerId = "demo-secondary-controller-01";
+const products = [
+  "Coca-Cola",
+  "Diet Coke",
+  "Coca-Cola Zero",
+  "Sprite",
+  "Dr Pepper",
+  "Fanta",
+  "Lemonade",
+  "Root Beer",
+  "Ginger Ale",
+  "Fruit Punch",
+  "Sweet Tea",
+  "Unsweet Tea",
+  "Powerade",
+  "Orange Beverage",
+  "Specialty Water",
+] as const;
 
-const mainDiningTrayIds = {
-  one: "demo-main-tray-01",
-  two: "demo-main-tray-02",
-  three: "demo-main-tray-03",
-  four: "demo-main-tray-04",
-  five: "demo-main-tray-05",
-  six: "demo-main-tray-06",
-} as const;
+type DemoLocationFixture = {
+  readonly location: Location;
+  readonly productOffset: number;
+  readonly remainingPercentages: readonly number[];
+};
 
-const secondaryDiningTrayIds = {
-  one: "demo-secondary-tray-01",
-  two: "demo-secondary-tray-02",
-  three: "demo-secondary-tray-03",
-} as const;
+const fixtureConfigurations = [
+  {
+    location: demoLocations.theHearth,
+    productOffset: 0,
+    remainingPercentages: [
+      92, 76, 64, 48, 35, 22, 9, 88, 56, 41,
+      83, 71, 59, 44, 31, 17, 68, 95, 52, 27,
+      79, 62, 46, 29, 14, 6, 87, 54, 38, 24,
+    ],
+  },
+  {
+    location: demoLocations.atriumDining,
+    productOffset: 3,
+    remainingPercentages: [
+      89, 74, 61, 49, 36, 21, 8, 84, 57, 43,
+      96, 81, 69, 53, 39, 18, 73, 66, 47, 28,
+      91, 77, 58, 45, 32, 12, 85, 63, 51, 25,
+    ],
+  },
+  {
+    location: demoLocations.unionHall,
+    productOffset: 6,
+    remainingPercentages: [
+      94, 82, 71, 58, 46, 34, 23, 12, 88, 65,
+      97, 79, 68, 55, 42, 30, 19, 15, 86, 62,
+      90, 76, 64, 52, 40, 27, 17, 11, 84, 60,
+    ],
+  },
+  {
+    location: demoLocations.theConcourse,
+    productOffset: 9,
+    remainingPercentages: [
+      93, 78, 66, 50, 37, 24, 7, 89, 55, 43,
+      85, 72, 60, 47, 34, 20, 69, 98, 53, 29,
+      80, 63, 49, 36, 16, 10, 87, 57, 44, 26,
+    ],
+  },
+] as const satisfies readonly DemoLocationFixture[];
 
-const mainDiningControllers = [
-  {
-    ...mainDiningScope,
-    id: mainDiningControllerId,
-    name: "Main Dining Demo Controller",
-    status: "online",
-    lastSeenAt: "2026-01-15T12:10:00.000Z",
-  },
-] as const satisfies readonly Controller[];
+function createDemoSnapshot({
+  location,
+  productOffset,
+  remainingPercentages,
+}: DemoLocationFixture): LocationTelemetrySnapshot {
+  const scope = {
+    organizationId: demoOrganization.id,
+    locationId: location.id,
+  } as const;
+  const controllerId = `${location.id}-controller-01`;
+  const controllers: readonly Controller[] = Object.freeze([
+    {
+      ...scope,
+      id: controllerId,
+      name: `${location.name} Controller`,
+      status: "online",
+      lastSeenAt: "2026-02-01T12:30:00.000Z",
+      firmwareVersion: "demo-1.0",
+    },
+  ]);
+  const sensorTrays: readonly SensorTray[] = Object.freeze(
+    remainingPercentages.map((_, index): SensorTray => {
+      const rackNumber = Math.floor(index / 10) + 1;
+      const positionNumber = (index % 10) + 1;
 
-const mainDiningSensorTrays = [
-  {
-    ...mainDiningScope,
-    id: mainDiningTrayIds.one,
-    controllerId: mainDiningControllerId,
-    name: "Rack A / Position 1",
-    family: "5-gallon",
-    status: "ready",
-  },
-  {
-    ...mainDiningScope,
-    id: mainDiningTrayIds.two,
-    controllerId: mainDiningControllerId,
-    name: "Rack A / Position 2",
-    family: "5-gallon",
-    status: "ready",
-  },
-  {
-    ...mainDiningScope,
-    id: mainDiningTrayIds.three,
-    controllerId: mainDiningControllerId,
-    name: "Rack A / Position 3",
-    family: "2.5-gallon",
-    status: "ready",
-  },
-  {
-    ...mainDiningScope,
-    id: mainDiningTrayIds.four,
-    controllerId: mainDiningControllerId,
-    name: "Rack A / Position 4",
-    family: "2.5-gallon",
-    status: "ready",
-  },
-  {
-    ...mainDiningScope,
-    id: mainDiningTrayIds.five,
-    controllerId: mainDiningControllerId,
-    name: "Rack A / Position 5",
-    family: "5-gallon",
-    status: "ready",
-  },
-  {
-    ...mainDiningScope,
-    id: mainDiningTrayIds.six,
-    controllerId: mainDiningControllerId,
-    name: "Rack A / Position 6",
-    family: "2.5-gallon",
-    status: "ready",
-  },
-] as const satisfies readonly SensorTray[];
+      return {
+        ...scope,
+        id: `${location.id}-tray-r${rackNumber}-p${positionNumber}`,
+        controllerId,
+        name: `Rack ${rackNumber} / Position ${positionNumber}`,
+        family: index % 4 === 0 ? "2.5-gallon" : "5-gallon",
+        status: "ready",
+      };
+    }),
+  );
+  const inventoryItems: readonly InventoryItem[] = Object.freeze(
+    sensorTrays.map((tray, index): InventoryItem => {
+      const containerSizeGallons: ContainerSizeGallons =
+        tray.family === "2.5-gallon" ? 2.5 : 5;
 
-const mainDiningInventoryItems = [
-  {
-    ...mainDiningScope,
-    ...demoContainerWeights[5],
-    id: "demo-main-inventory-01",
-    trayId: mainDiningTrayIds.one,
-    productName: "Demo Cola Syrup",
-    containerSizeGallons: 5,
-    installedAt: "2026-01-15T08:00:00.000Z",
-  },
-  {
-    ...mainDiningScope,
-    ...demoContainerWeights[5],
-    id: "demo-main-inventory-02",
-    trayId: mainDiningTrayIds.two,
-    productName: "Demo Diet Cola Syrup",
-    containerSizeGallons: 5,
-    installedAt: "2026-01-15T08:05:00.000Z",
-  },
-  {
-    ...mainDiningScope,
-    ...demoContainerWeights[2.5],
-    id: "demo-main-inventory-03",
-    trayId: mainDiningTrayIds.three,
-    productName: "Demo Lemon-Lime Syrup",
-    containerSizeGallons: 2.5,
-    installedAt: "2026-01-15T08:10:00.000Z",
-  },
-  {
-    ...mainDiningScope,
-    ...demoContainerWeights[2.5],
-    id: "demo-main-inventory-04",
-    trayId: mainDiningTrayIds.four,
-    productName: "Demo Orange Syrup",
-    containerSizeGallons: 2.5,
-    installedAt: "2026-01-15T08:15:00.000Z",
-  },
-  {
-    ...mainDiningScope,
-    ...demoContainerWeights[5],
-    id: "demo-main-inventory-05",
-    trayId: mainDiningTrayIds.five,
-    productName: "Demo Root Beer Syrup",
-    containerSizeGallons: 5,
-    installedAt: "2026-01-15T08:20:00.000Z",
-  },
-] as const satisfies readonly InventoryItem[];
+      return {
+        ...scope,
+        ...demoContainerWeights[containerSizeGallons],
+        id: `${location.id}-inventory-${String(index + 1).padStart(2, "0")}`,
+        trayId: tray.id,
+        productName: products[(index + productOffset) % products.length],
+        containerSizeGallons,
+        installedAt: "2026-02-01T08:00:00.000Z",
+      };
+    }),
+  );
+  const telemetryReadings: readonly TelemetryReading[] = Object.freeze(
+    inventoryItems.map((item, index): TelemetryReading => ({
+      ...scope,
+      id: `${location.id}-reading-${String(index + 1).padStart(2, "0")}`,
+      controllerId,
+      trayId: item.trayId,
+      timestamp: `2026-02-01T12:${String(index).padStart(2, "0")}:00.000Z`,
+      grossWeightGrams:
+        item.tareWeightGrams +
+        (item.fullProductWeightGrams * remainingPercentages[index]) / 100,
+      dataSource: "simulated",
+    })),
+  );
 
-const mainDiningTelemetryReadings = [
-  {
-    ...mainDiningScope,
-    id: "demo-main-reading-01",
-    controllerId: mainDiningControllerId,
-    trayId: mainDiningTrayIds.one,
-    timestamp: "2026-01-15T12:00:00.000Z",
-    grossWeightGrams: 19_650,
+  return Object.freeze({
+    ...scope,
     dataSource: "simulated",
-  },
-  {
-    ...mainDiningScope,
-    id: "demo-main-reading-02",
-    controllerId: mainDiningControllerId,
-    trayId: mainDiningTrayIds.one,
-    timestamp: "2026-01-15T12:10:00.000Z",
-    grossWeightGrams: 23_400,
-    dataSource: "simulated",
-  },
-  {
-    ...mainDiningScope,
-    id: "demo-main-reading-03",
-    controllerId: mainDiningControllerId,
-    trayId: mainDiningTrayIds.two,
-    timestamp: "2026-01-15T12:10:00.000Z",
-    grossWeightGrams: 13_400,
-    dataSource: "simulated",
-  },
-  {
-    ...mainDiningScope,
-    id: "demo-main-reading-04",
-    controllerId: mainDiningControllerId,
-    trayId: mainDiningTrayIds.three,
-    timestamp: "2026-01-15T12:10:00.000Z",
-    grossWeightGrams: 3_100,
-    dataSource: "simulated",
-  },
-  {
-    ...mainDiningScope,
-    id: "demo-main-reading-05",
-    controllerId: mainDiningControllerId,
-    trayId: mainDiningTrayIds.four,
-    timestamp: "2026-01-15T12:10:00.000Z",
-    grossWeightGrams: 13_100,
-    dataSource: "simulated",
-  },
-  {
-    ...mainDiningScope,
-    id: "demo-main-reading-06",
-    controllerId: mainDiningControllerId,
-    trayId: mainDiningTrayIds.five,
-    timestamp: "2026-01-15T12:10:00.000Z",
-    grossWeightGrams: 5_900,
-    dataSource: "simulated",
-  },
-] as const satisfies readonly TelemetryReading[];
+    controllers,
+    sensorTrays,
+    inventoryItems,
+    telemetryReadings,
+  });
+}
 
-const secondaryDiningControllers = [
-  {
-    ...secondaryDiningScope,
-    id: secondaryDiningControllerId,
-    name: "Secondary Dining Demo Controller",
-    status: "online",
-    lastSeenAt: "2026-01-15T12:05:00.000Z",
-  },
-] as const satisfies readonly Controller[];
-
-const secondaryDiningSensorTrays = [
-  {
-    ...secondaryDiningScope,
-    id: secondaryDiningTrayIds.one,
-    controllerId: secondaryDiningControllerId,
-    name: "Rack A / Position 1",
-    family: "2.5-gallon",
-    status: "ready",
-  },
-  {
-    ...secondaryDiningScope,
-    id: secondaryDiningTrayIds.two,
-    controllerId: secondaryDiningControllerId,
-    name: "Rack A / Position 2",
-    family: "5-gallon",
-    status: "ready",
-  },
-  {
-    ...secondaryDiningScope,
-    id: secondaryDiningTrayIds.three,
-    controllerId: secondaryDiningControllerId,
-    name: "Rack A / Position 3",
-    family: "5-gallon",
-    status: "ready",
-  },
-] as const satisfies readonly SensorTray[];
-
-const secondaryDiningInventoryItems = [
-  {
-    ...secondaryDiningScope,
-    ...demoContainerWeights[2.5],
-    id: "demo-secondary-inventory-01",
-    trayId: secondaryDiningTrayIds.one,
-    productName: "Demo Cola Syrup",
-    containerSizeGallons: 2.5,
-    installedAt: "2026-01-15T09:00:00.000Z",
-  },
-  {
-    ...secondaryDiningScope,
-    ...demoContainerWeights[5],
-    id: "demo-secondary-inventory-02",
-    trayId: secondaryDiningTrayIds.two,
-    productName: "Demo Lemon-Lime Syrup",
-    containerSizeGallons: 5,
-    installedAt: "2026-01-15T09:05:00.000Z",
-  },
-] as const satisfies readonly InventoryItem[];
-
-const secondaryDiningTelemetryReadings = [
-  {
-    ...secondaryDiningScope,
-    id: "demo-secondary-reading-01",
-    controllerId: secondaryDiningControllerId,
-    trayId: secondaryDiningTrayIds.one,
-    timestamp: "2026-01-15T11:55:00.000Z",
-    grossWeightGrams: 10_600,
-    dataSource: "simulated",
-  },
-  {
-    ...secondaryDiningScope,
-    id: "demo-secondary-reading-02",
-    controllerId: secondaryDiningControllerId,
-    trayId: secondaryDiningTrayIds.one,
-    timestamp: "2026-01-15T12:05:00.000Z",
-    grossWeightGrams: 6_850,
-    dataSource: "simulated",
-  },
-  {
-    ...secondaryDiningScope,
-    id: "demo-secondary-reading-03",
-    controllerId: secondaryDiningControllerId,
-    trayId: secondaryDiningTrayIds.two,
-    timestamp: "2026-01-15T12:05:00.000Z",
-    grossWeightGrams: 23_400,
-    dataSource: "simulated",
-  },
-] as const satisfies readonly TelemetryReading[];
-
-export const demoTelemetrySnapshots = [
-  {
-    ...mainDiningScope,
-    dataSource: "simulated",
-    controllers: mainDiningControllers,
-    sensorTrays: mainDiningSensorTrays,
-    inventoryItems: mainDiningInventoryItems,
-    telemetryReadings: mainDiningTelemetryReadings,
-  },
-  {
-    ...secondaryDiningScope,
-    dataSource: "simulated",
-    controllers: secondaryDiningControllers,
-    sensorTrays: secondaryDiningSensorTrays,
-    inventoryItems: secondaryDiningInventoryItems,
-    telemetryReadings: secondaryDiningTelemetryReadings,
-  },
-] as const satisfies readonly LocationTelemetrySnapshot[];
+export const demoTelemetrySnapshots = Object.freeze(
+  fixtureConfigurations.map(createDemoSnapshot),
+) satisfies readonly LocationTelemetrySnapshot[];

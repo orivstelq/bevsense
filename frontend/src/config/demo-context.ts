@@ -7,20 +7,33 @@ export const demoOrganization = {
 } as const satisfies Organization;
 
 export const demoLocations = {
-  mainDining: {
-    id: "demo-main-dining",
+  theHearth: {
+    id: "demo-the-hearth",
     organizationId: demoOrganization.id,
-    name: "Main Dining",
+    name: "The Hearth",
   },
-  secondaryDining: {
-    id: "demo-secondary-dining",
+  atriumDining: {
+    id: "demo-atrium-dining",
     organizationId: demoOrganization.id,
-    name: "Secondary Dining",
+    name: "Atrium Dining",
   },
-} as const satisfies Record<"mainDining" | "secondaryDining", Location>;
+  unionHall: {
+    id: "demo-union-hall",
+    organizationId: demoOrganization.id,
+    name: "Union Hall",
+  },
+  theConcourse: {
+    id: "demo-the-concourse",
+    organizationId: demoOrganization.id,
+    name: "The Concourse",
+  },
+} as const satisfies Record<
+  "theHearth" | "atriumDining" | "unionHall" | "theConcourse",
+  Location
+>;
 
 export const demoContext = {
   organization: demoOrganization,
-  location: demoLocations.mainDining,
+  location: demoLocations.theHearth,
   isDemo: true,
 } as const satisfies OrganizationContext;

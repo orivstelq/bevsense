@@ -1,10 +1,18 @@
+import {
+  getDemoTranslations,
+  type DemoLanguage,
+} from "@/config/demo-translations";
 import type { SnapshotAnalytics } from "@/types/analytics";
+import type { DemoPlanning } from "@/lib/analytics/derive-demo-planning";
 
 import { AnalyticsSummary } from "./analytics-summary";
 import { InventoryDistribution } from "./inventory-distribution";
+import { DemoPlanningSection } from "./demo-planning";
 
 type AnalyticsProps = {
   analytics: SnapshotAnalytics;
+  language: DemoLanguage;
+  planning: DemoPlanning;
 };
 
 function MetricList({
@@ -29,7 +37,8 @@ function MetricList({
   );
 }
 
-export function Analytics({ analytics }: AnalyticsProps) {
+export function Analytics({ analytics, language, planning }: AnalyticsProps) {
+  const copy = getDemoTranslations(language);
   const configurationMetrics = [
     {
       label: "Configured trays",
@@ -86,14 +95,11 @@ export function Analytics({ analytics }: AnalyticsProps) {
   return (
     <div className="space-y-6 sm:space-y-8">
       <section aria-labelledby="analytics-title">
-        <p className="text-sm font-semibold tracking-[0.08em] text-slate-500">
-          CURRENT SNAPSHOT ANALYTICS
-        </p>
         <h1
-          className="mt-1 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl"
+          className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl"
           id="analytics-title"
         >
-          Analytics
+          {copy.navigation.analytics}
         </h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">
           Current inventory, telemetry coverage, and demo findings for this
@@ -106,15 +112,22 @@ export function Analytics({ analytics }: AnalyticsProps) {
           DETERMINISTIC SIMULATION DATA
         </h2>
         <p className="mt-1 max-w-4xl text-sm leading-6 text-amber-900">
-          Values come from the current fixed demo snapshot, not live hardware.
-          No historical analytics dataset exists yet, so no trends, usage
-          rates, or forecasts are shown.
+          Values come from the current deterministic presentation snapshot,
+          not live hardware.
+          No historical analytics dataset exists yet, so no production trends
+          or customer forecasts are shown. The planning section uses only the
+          deterministic presentation model.
         </p>
       </aside>
 
       <AnalyticsSummary analytics={analytics} />
 
-      <InventoryDistribution levels={analytics.currentInventoryLevels} />
+      <DemoPlanningSection planning={planning} />
+
+      <InventoryDistribution
+        language={language}
+        levels={analytics.currentInventoryLevels}
+      />
 
       <section
         aria-labelledby="snapshot-breakdown-title"

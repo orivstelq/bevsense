@@ -10,6 +10,9 @@ import {
   getTelemetryProvider,
   type TelemetryLoadFailureReason,
 } from "./server-provider";
+import { simulatedTelemetryProvider } from "./simulated-provider";
+import type { TelemetryProvider } from "./provider";
+import { deriveDemoSnapshotAt } from "@/lib/demo-simulation";
 
 export type LocationTelemetryLoadResult =
   | {
@@ -21,11 +24,10 @@ export type LocationTelemetryLoadResult =
       readonly reason: TelemetryLoadFailureReason;
     };
 
-export async function loadLocationTelemetry(
+async function loadTelemetry(
   scope: LocationScope,
+  provider: TelemetryProvider,
 ): Promise<LocationTelemetryLoadResult> {
-  const provider = getTelemetryProvider();
-
   try {
     return {
       status: "ready",
@@ -40,4 +42,26 @@ export async function loadLocationTelemetry(
           : "backend-unavailable",
     };
   }
+}
+
+export function loadLocationTelemetry(scope: LocationScope, accessToken?: string) {
+  return loadTelemetry(scope, getTelemetryProvider(accessToken));
+}
+
+export async function loadDemoLocationTelemetry(
+  scope: LocationScope,
+  demoStartedAt: string,
+  currentAt = new Date().toISOString(),
+) {
+  const result = await loadTelemetry(scope, simulatedTelemetryProvider);
+  return result.status === "ready"
+    ? {
+        status: "ready" as const,
+        snapshot: deriveDemoSnapshotAt(
+          result.snapshot,
+          demoStartedAt,
+          currentAt,
+        ),
+      }
+    : result;
 }

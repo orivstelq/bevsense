@@ -4,6 +4,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.api.v1.ingestion import router as ingestion_router
+from app.api.v1.account import router as account_router
 from app.api.v1.telemetry import router as telemetry_router
 from app.core.config import settings
 
@@ -31,3 +32,4 @@ def get_health() -> HealthResponse:
 
 router.include_router(ingestion_router)
 router.include_router(telemetry_router)
+router.include_router(account_router)

@@ -10,12 +10,22 @@ import {
   findDemoPersona,
   getDemoPersonaDestination,
 } from "@/config/demo-personas";
+import {
+  isDemoLanguage,
+  type DemoLanguage,
+} from "@/config/demo-translations";
 import type { LocationScope } from "@/types/domain";
 import type { OrganizationContext } from "@/types/organization-context";
+import { isValidDemoStartedAt } from "@/lib/demo-simulation";
 
 type DemoSearchParams = Promise<
   Record<string, string | string[] | undefined>
 >;
+
+export async function isExplicitDemoMode(searchParams: DemoSearchParams) {
+  const { mode } = await searchParams;
+  return mode === "demo";
+}
 
 export async function resolveDemoContextFromSearchParams(
   searchParams: DemoSearchParams,
@@ -23,43 +33,77 @@ export async function resolveDemoContextFromSearchParams(
 ) {
   const params = await searchParams;
   const {
+    mode: requestedMode,
     location: requestedLocationId,
     persona: requestedPersonaId,
+    lang: requestedLanguage,
+    demoStartedAt: requestedDemoStartedAt,
+    started: requestedStarted,
   } = params;
+
+  if (requestedMode !== "demo") {
+    redirect("/");
+  }
 
   if (
     (requestedLocationId !== undefined &&
       typeof requestedLocationId !== "string") ||
     (requestedPersonaId !== undefined &&
-      typeof requestedPersonaId !== "string")
+      typeof requestedPersonaId !== "string") ||
+    (requestedLanguage !== undefined &&
+      typeof requestedLanguage !== "string") ||
+    typeof requestedDemoStartedAt !== "string" ||
+    (requestedStarted !== undefined && requestedStarted !== "1")
   ) {
     notFound();
   }
 
   const locationId = requestedLocationId ?? demoContext.location.id;
   const personaId = requestedPersonaId ?? defaultDemoPersona.id;
+  const languageValue = requestedLanguage ?? "en";
 
   const location = Object.values(demoLocations).find(
     (candidate) => candidate.id === locationId,
   );
   const persona = findDemoPersona(personaId);
+  const language: DemoLanguage | null = isDemoLanguage(languageValue)
+    ? languageValue
+    : null;
 
-  if (!location || !persona) {
+  if (
+    !location ||
+    !persona ||
+    !language ||
+    !isValidDemoStartedAt(requestedDemoStartedAt)
+  ) {
     notFound();
   }
 
   const query = new URLSearchParams({
+    mode: "demo",
     location: location.id,
     persona: persona.id,
+    lang: language,
+    demoStartedAt: requestedDemoStartedAt,
   });
+  if (requestedStarted === "1") {
+    query.set("started", "1");
+  }
   const destination = getDemoPersonaDestination(persona, pathname);
   const hasUnsupportedParams = Object.keys(params).some(
-    (key) => key !== "location" && key !== "persona",
+    (key) =>
+      key !== "mode" &&
+      key !== "location" &&
+      key !== "persona" &&
+      key !== "lang" &&
+      key !== "demoStartedAt" &&
+      key !== "started",
   );
 
   if (
     requestedLocationId === undefined ||
     requestedPersonaId === undefined ||
+    requestedLanguage === undefined ||
     hasUnsupportedParams ||
     destination !== pathname
   ) {
@@ -76,5 +120,12 @@ export async function resolveDemoContextFromSearchParams(
     locationId: context.location.id,
   } as const satisfies LocationScope;
 
-  return { context, persona, scope } as const;
+  return {
+    context,
+    persona,
+    language,
+    demoStartedAt: requestedDemoStartedAt,
+    scope,
+    showDemoStarted: requestedStarted === "1",
+  } as const;
 }

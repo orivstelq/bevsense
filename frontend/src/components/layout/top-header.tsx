@@ -1,4 +1,6 @@
 import type { DemoPersona } from "@/config/demo-personas";
+import type { DemoLanguage } from "@/config/demo-translations";
+import { BevSenseBrand } from "@/components/brand/bevsense-brand";
 import { TelemetryAutoRefresh } from "@/components/telemetry/telemetry-auto-refresh";
 import type { OrganizationContext } from "@/types/organization-context";
 
@@ -7,41 +9,26 @@ import { DemoContextControls } from "./demo-context-controls";
 type TopHeaderProps = {
   context: OrganizationContext;
   persona: DemoPersona;
+  language: DemoLanguage;
 };
 
-export function TopHeader({ context, persona }: TopHeaderProps) {
+export function TopHeader({ context, language, persona }: TopHeaderProps) {
   return (
     <header className="border-b border-slate-200 bg-white">
       <div className="mx-auto flex min-h-20 w-full max-w-7xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-4 sm:px-6 lg:px-8">
-        <div className="min-w-0 flex-1">
-          <p className="mb-2 text-base font-semibold tracking-tight text-slate-950 lg:hidden">
-            BevSense
-          </p>
+        <div className="min-w-0 flex-1 basis-full sm:basis-auto">
+          <BevSenseBrand className="mb-3 text-slate-950 lg:hidden" />
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
-            Viewing context
+            Organization
           </p>
-          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-            <span className="font-semibold text-slate-900">
-              <span className="sr-only">Organization: </span>
-              {context.organization.name}
-            </span>
-            <span aria-hidden="true" className="text-slate-300">
-              /
-            </span>
-            <span className="text-slate-600">
-              <span className="sr-only">Location: </span>
-              {context.location.name}
-            </span>
-            {context.isDemo && (
-              <span className="rounded-sm bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
-                Demo context
-              </span>
-            )}
-          </div>
+          <p className="mt-1 truncate text-sm font-semibold text-slate-900">
+            {context.organization.name}
+          </p>
         </div>
 
         <DemoContextControls
           currentLocationId={context.location.id}
+          language={language}
           persona={persona}
         />
 

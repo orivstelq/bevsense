@@ -30,10 +30,13 @@ EXPECTED_TABLES = {
     "controller_credentials",
     "controllers",
     "inventory_items",
+    "location_assignments",
     "locations",
+    "organization_memberships",
     "organizations",
     "sensor_trays",
     "telemetry_readings",
+    "user_profiles",
 }
 
 
@@ -63,7 +66,7 @@ def test_initial_migration_supports_downgrade_and_upgrade(
     with migrated_database.engine.connect() as connection:
         assert (
             MigrationContext.configure(connection).get_current_revision()
-            == "20260809_0003"
+            == "20260809_0004"
         )
 
     credential_columns = {

@@ -47,9 +47,5 @@ export function TelemetryAutoRefresh() {
     };
   }, [router]);
 
-  return (
-    <p className="whitespace-nowrap text-xs font-medium text-slate-500">
-      Auto-refresh <span aria-hidden="true">·</span> 5s
-    </p>
-  );
+  return null;
 }

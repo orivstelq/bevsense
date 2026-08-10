@@ -6,6 +6,8 @@ from app.providers.database_telemetry import DatabaseTelemetryProvider
 from app.providers.simulated_telemetry import SimulatedTelemetryProvider
 from app.services.telemetry_ingestion_service import TelemetryIngestionService
 from app.services.telemetry_service import TelemetryService
+from app.security.human_tokens import SupabaseHumanTokenVerifier
+from app.services.human_authorization_service import HumanAuthorizationService
 
 
 def create_telemetry_service(
@@ -57,4 +59,23 @@ def get_telemetry_ingestion_service() -> TelemetryIngestionService:
         enabled=settings.ingestion_enabled,
         provider_name=provider_name,
         session_factory=session_factory,
+    )
+
+
+def get_human_auth_enabled() -> bool:
+    return settings.human_auth_enabled
+
+
+@lru_cache
+def get_human_authorization_service() -> HumanAuthorizationService | None:
+    if not settings.human_auth_enabled:
+        return None
+    if not settings.supabase_url or not settings.supabase_publishable_key:
+        raise ValueError("Supabase human authentication is not configured.")
+    return HumanAuthorizationService(
+        session_factory=get_session_factory(),
+        token_verifier=SupabaseHumanTokenVerifier(
+            settings.supabase_url,
+            settings.supabase_publishable_key,
+        ),
     )

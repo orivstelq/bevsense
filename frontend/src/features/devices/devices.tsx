@@ -1,3 +1,7 @@
+import {
+  getDemoTranslations,
+  type DemoLanguage,
+} from "@/config/demo-translations";
 import type { LocationTelemetrySnapshot } from "@/types/domain";
 
 import { ControllerCard, SensorTrayList } from "./controller-card";
@@ -5,9 +9,11 @@ import { DevicesSummary } from "./devices-summary";
 
 type DevicesProps = {
   snapshot: LocationTelemetrySnapshot;
+  language: DemoLanguage;
 };
 
-export function Devices({ snapshot }: DevicesProps) {
+export function Devices({ snapshot, language }: DevicesProps) {
+  const copy = getDemoTranslations(language);
   const readyTrayCount = snapshot.sensorTrays.filter(
     (tray) => tray.status === "ready",
   ).length;
@@ -29,7 +35,7 @@ export function Devices({ snapshot }: DevicesProps) {
           className="mt-1 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl"
           id="devices-title"
         >
-          Devices
+          {copy.navigation.devices}
         </h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">
           Simulated controller and sensor tray topology for this location.
@@ -82,6 +88,7 @@ export function Devices({ snapshot }: DevicesProps) {
                   controller={controller}
                   inventoryItems={snapshot.inventoryItems}
                   key={controller.id}
+                  language={language}
                   trays={trays}
                 />
               );
@@ -112,6 +119,7 @@ export function Devices({ snapshot }: DevicesProps) {
             <SensorTrayList
               controllerName={null}
               inventoryItems={snapshot.inventoryItems}
+              language={language}
               trays={unresolvedTrays}
             />
           </div>

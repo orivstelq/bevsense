@@ -21,7 +21,7 @@ export const demoPersonas = [
   {
     id: "utility-worker",
     label: "Utility Worker",
-    visiblePageHrefs: ["/", "/inventory", "/alerts"],
+    visiblePageHrefs: ["/", "/inventory", "/alerts", "/settings"],
     overview: {
       summary:
         "Focus on current BiB replacement readiness, low inventory findings, and immediate operating conditions.",
@@ -41,6 +41,7 @@ export const demoPersonas = [
       "/alerts",
       "/devices",
       "/analytics",
+      "/settings",
     ],
     overview: {
       summary:
@@ -62,6 +63,7 @@ export const demoPersonas = [
       "/alerts",
       "/devices",
       "/analytics",
+      "/settings",
     ],
     overview: {
       summary:
@@ -77,7 +79,13 @@ export const demoPersonas = [
   {
     id: "technician",
     label: "Technician",
-    visiblePageHrefs: ["/", "/inventory", "/alerts", "/devices"],
+    visiblePageHrefs: [
+      "/",
+      "/inventory",
+      "/alerts",
+      "/devices",
+      "/settings",
+    ],
     overview: {
       summary:
         "Focus on controllers, sensor trays, telemetry availability, and hardware-related findings.",

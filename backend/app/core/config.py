@@ -9,6 +9,7 @@ DEFAULT_CORS_ORIGINS = ("http://localhost:3000",)
 DEFAULT_DATABASE_URL = "sqlite:///./bib-platform-dev.db"
 DEFAULT_BACKEND_TELEMETRY_PROVIDER = "database"
 DEFAULT_INGESTION_ENABLED = False
+DEFAULT_HUMAN_AUTH_ENABLED = False
 SUPPORTED_DATABASE_SSLMODES = frozenset(
     {"disable", "allow", "prefer", "require", "verify-ca", "verify-full"}
 )
@@ -99,6 +100,29 @@ def get_ingestion_enabled() -> bool:
     raise ValueError("BIB_INGESTION_ENABLED must be either true or false.")
 
 
+def get_human_auth_enabled() -> bool:
+    configured_value = environ.get(
+        "BIB_HUMAN_AUTH_ENABLED",
+        str(DEFAULT_HUMAN_AUTH_ENABLED).lower(),
+    ).strip().lower()
+    if configured_value == "true":
+        return True
+    if configured_value == "false":
+        return False
+    raise ValueError("BIB_HUMAN_AUTH_ENABLED must be either true or false.")
+
+
+def get_supabase_auth_configuration() -> tuple[str | None, str | None]:
+    url = environ.get("BIB_SUPABASE_URL")
+    publishable_key = environ.get("BIB_SUPABASE_PUBLISHABLE_KEY")
+    if get_human_auth_enabled() and (not url or not publishable_key):
+        raise ValueError(
+            "BIB_SUPABASE_URL and BIB_SUPABASE_PUBLISHABLE_KEY are required "
+            "when human authentication is enabled."
+        )
+    return url, publishable_key
+
+
 @dataclass(frozen=True, slots=True)
 class Settings:
     service_name: str = "bevsense-api"
@@ -110,6 +134,13 @@ class Settings:
         default_factory=get_backend_telemetry_provider
     )
     ingestion_enabled: bool = field(default_factory=get_ingestion_enabled)
+    human_auth_enabled: bool = field(default_factory=get_human_auth_enabled)
+    supabase_url: str | None = field(
+        default_factory=lambda: get_supabase_auth_configuration()[0]
+    )
+    supabase_publishable_key: str | None = field(
+        default_factory=lambda: get_supabase_auth_configuration()[1]
+    )
 
 
 settings = Settings()

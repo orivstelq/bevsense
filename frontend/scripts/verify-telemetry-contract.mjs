@@ -7,7 +7,7 @@ import {
 
 const scope = {
   organizationId: "demo-organization",
-  locationId: "demo-main-dining",
+  locationId: "demo-the-hearth",
 };
 const validPayload = {
   ...scope,
@@ -16,7 +16,7 @@ const validPayload = {
   location: {
     id: scope.locationId,
     organizationId: scope.organizationId,
-    name: "Main Dining",
+    name: "The Hearth",
   },
   dataSource: "simulated",
   controllers: [
@@ -33,7 +33,7 @@ const validPayload = {
       ...scope,
       id: "tray-1",
       controllerId: "controller-1",
-      name: "Position 1",
+      name: "Rack 1 / Position 1",
       family: "5-gallon",
       status: "ready",
     },

@@ -1,3 +1,8 @@
+import {
+  getDemoTranslations,
+  type DemoLanguage,
+} from "@/config/demo-translations";
+import { parseRackPosition } from "@/lib/inventory/current-inventory";
 import type {
   Controller,
   InventoryItem,
@@ -9,12 +14,14 @@ type SensorTrayListProps = {
   trays: readonly SensorTray[];
   inventoryItems: readonly InventoryItem[];
   controllerName: string | null;
+  language: DemoLanguage;
 };
 
 type ControllerCardProps = {
   controller: Controller;
   trays: readonly SensorTray[];
   inventoryItems: readonly InventoryItem[];
+  language: DemoLanguage;
 };
 
 const timestampFormatter = new Intl.DateTimeFormat("en-US", {
@@ -60,7 +67,9 @@ export function SensorTrayList({
   trays,
   inventoryItems,
   controllerName,
+  language,
 }: SensorTrayListProps) {
+  const copy = getDemoTranslations(language);
   if (trays.length === 0) {
     return (
       <p className="border-t border-slate-200 px-5 py-5 text-sm text-slate-600">
@@ -70,73 +79,60 @@ export function SensorTrayList({
   }
 
   return (
-    <div className="border-t border-slate-200">
-      <div className="hidden grid-cols-[minmax(10rem,1.4fr)_minmax(7rem,0.8fr)_minmax(9rem,0.9fr)_minmax(8rem,0.8fr)] gap-5 border-b border-slate-200 bg-slate-100 px-5 py-3 text-xs font-semibold uppercase tracking-[0.1em] text-slate-600 md:grid">
-        <span>Sensor tray</span>
-        <span>Tray family</span>
-        <span>Simulated status</span>
-        <span>Assignment</span>
-      </div>
-      <ul className="divide-y divide-slate-200">
-        {trays.map((tray) => {
-          const isAssigned = inventoryItems.some(
-            (item) =>
-              item.organizationId === tray.organizationId &&
-              item.locationId === tray.locationId &&
-              item.trayId === tray.id,
-          );
+    <div className="space-y-5 border-t border-slate-200 p-4 sm:p-5">
+      {[1, 2, 3].map((rackNumber) => {
+        const rackTrays = trays.filter(
+          (tray) => parseRackPosition(tray.name)?.rackNumber === rackNumber,
+        );
 
-          return (
-            <li
-              className="grid min-w-0 gap-4 bg-white px-4 py-4 sm:px-5 md:grid-cols-[minmax(10rem,1.4fr)_minmax(7rem,0.8fr)_minmax(9rem,0.9fr)_minmax(8rem,0.8fr)] md:items-center md:gap-5"
-              key={tray.id}
+        return (
+          <section aria-labelledby={`device-rack-${rackNumber}`} key={rackNumber}>
+            <h4
+              className="mb-3 text-sm font-semibold text-slate-900"
+              id={`device-rack-${rackNumber}`}
             >
-              <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500 md:sr-only">
-                  Sensor tray
-                </p>
-                <p className="mt-1 break-words text-sm font-semibold text-slate-950 md:mt-0">
-                  {tray.name}
-                </p>
-                <p className="mt-1 text-xs text-slate-500">
-                  {controllerName
-                    ? `Attached to ${controllerName}`
-                    : "Controller relationship unresolved"}
-                </p>
-              </div>
+              {copy.rack} {rackNumber}
+            </h4>
+            <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+              {rackTrays.map((tray) => {
+                const rackPosition = parseRackPosition(tray.name);
+                const isAssigned = inventoryItems.some(
+                  (item) => item.trayId === tray.id,
+                );
 
-              <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500 md:sr-only">
-                  Tray family
-                </p>
-                <p className="mt-1 text-sm text-slate-700 md:mt-0">
-                  {tray.family}
-                </p>
-              </div>
-
-              <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500 md:sr-only">
-                  Simulated status
-                </p>
-                <span
-                  className={`mt-1 inline-flex rounded-sm border px-2 py-1 text-xs font-semibold md:mt-0 ${trayStatusClassNames[tray.status]}`}
-                >
-                  Simulated {tray.status}
-                </span>
-              </div>
-
-              <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500 md:sr-only">
-                  Assignment
-                </p>
-                <p className="mt-1 text-sm font-medium text-slate-700 md:mt-0">
-                  {isAssigned ? "Assigned" : "Unassigned"}
-                </p>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+                return (
+                  <li
+                    className="min-w-0 rounded-md border border-slate-200 bg-slate-50 p-3"
+                    key={tray.id}
+                  >
+                    <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                      {copy.position} {rackPosition?.positionNumber ?? "?"}
+                    </p>
+                    <p className="mt-1 text-sm font-medium text-slate-800">
+                      {tray.family}
+                    </p>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <span
+                        className={`rounded-sm border px-2 py-1 text-xs font-semibold capitalize ${trayStatusClassNames[tray.status]}`}
+                      >
+                        {tray.status}
+                      </span>
+                      <span className="text-xs text-slate-500">
+                        {isAssigned ? "Assigned" : "Unassigned"}
+                      </span>
+                    </div>
+                    {!controllerName && (
+                      <p className="mt-2 text-xs text-amber-800">
+                        Controller relationship unresolved
+                      </p>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        );
+      })}
     </div>
   );
 }
@@ -145,6 +141,7 @@ export function ControllerCard({
   controller,
   trays,
   inventoryItems,
+  language,
 }: ControllerCardProps) {
   return (
     <article
@@ -203,13 +200,14 @@ export function ControllerCard({
         <span
           className={`inline-flex w-fit rounded-sm border px-3 py-1.5 text-sm font-semibold ${controllerStatusClassNames[controller.status]}`}
         >
-          Simulated {controller.status}
+          <span className="capitalize">{controller.status}</span>
         </span>
       </div>
 
       <SensorTrayList
         controllerName={controller.name}
         inventoryItems={inventoryItems}
+        language={language}
         trays={trays}
       />
     </article>
