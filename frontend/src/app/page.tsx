@@ -8,8 +8,11 @@ import {
   resolveDemoContextFromSearchParams,
 } from "@/lib/demo-context";
 import { getHardwareConnectionsEnabled } from "@/lib/product-environment";
-import { getHumanAuthEnabled } from "@/lib/auth/auth-environment";
-import { getAuthenticatedHumanAccount } from "@/lib/auth/human-account";
+import {
+  getHumanAuthEnabled,
+  getSelfSignupEnabled,
+} from "@/lib/auth/auth-environment";
+import { getHumanSessionState } from "@/lib/auth/human-account";
 import { loadDemoLocationTelemetry } from "@/lib/telemetry/load-location-telemetry";
 
 export default async function Home({ searchParams }: PageProps<"/">) {
@@ -17,11 +20,14 @@ export default async function Home({ searchParams }: PageProps<"/">) {
     const humanAuthEnabled = getHumanAuthEnabled();
     return (
       <ProductionHome
-        account={
-          humanAuthEnabled ? await getAuthenticatedHumanAccount() : null
-        }
         hardwareConnectionsEnabled={getHardwareConnectionsEnabled()}
         humanAuthEnabled={humanAuthEnabled}
+        selfSignupEnabled={humanAuthEnabled && getSelfSignupEnabled()}
+        sessionState={
+          humanAuthEnabled
+            ? await getHumanSessionState()
+            : { status: "signed-out" }
+        }
       />
     );
   }

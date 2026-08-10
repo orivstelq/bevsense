@@ -4,7 +4,7 @@ from uuid import UUID
 
 from app.db.engine import SessionFactory
 from app.db.human_access_repository import HumanAccessRepository
-from app.security.human_tokens import HumanTokenVerifier
+from app.security.human_tokens import AuthenticatedHuman, HumanTokenVerifier
 
 
 AuthenticatedRole = Literal[
@@ -38,6 +38,7 @@ class AuthorizedMembership:
 
 @dataclass(frozen=True, slots=True)
 class AuthorizedHumanAccount:
+    auth_user_id: UUID
     display_name: str
     preferred_language: Literal["en", "es"]
     memberships: tuple[AuthorizedMembership, ...]
@@ -53,6 +54,9 @@ class HumanAuthorizationService:
         self._session_factory = session_factory
         self._token_verifier = token_verifier
         self._repository = repository or HumanAccessRepository()
+
+    def authenticate_identity(self, token: str) -> AuthenticatedHuman:
+        return self._token_verifier.verify(token)
 
     def authorize_snapshot(
         self,
@@ -122,6 +126,7 @@ class HumanAuthorizationService:
             raise HumanAccessForbiddenError("Access is not permitted.")
 
         return AuthorizedHumanAccount(
+            auth_user_id=identity.auth_user_id,
             display_name=profile.display_name,
             preferred_language=profile.preferred_language,
             memberships=tuple(

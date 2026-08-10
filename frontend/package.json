@@ -10,6 +10,7 @@
     "verify:demo-experience": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/verify-demo-experience.mjs",
     "verify:live-demo": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/verify-live-demo.mjs",
     "verify:auth-boundaries": "node scripts/verify-auth-boundaries.mjs",
+    "verify:access-onboarding": "node scripts/verify-access-onboarding.mjs",
     "verify:product-experience": "node scripts/verify-product-experience.mjs",
     "verify:telemetry-contract": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/verify-telemetry-contract.mjs"
   },

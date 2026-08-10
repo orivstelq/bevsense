@@ -179,6 +179,7 @@ Human authentication is disabled by default and is controlled independently from
 
 ```bash
 BIB_HUMAN_AUTH_ENABLED=false
+BIB_SELF_SIGNUP_ENABLED=false
 # BIB_SUPABASE_URL=https://project-ref.supabase.co
 # BIB_SUPABASE_PUBLISHABLE_KEY=sb_publishable_example
 ```
@@ -200,12 +201,20 @@ python -m app.scripts.provision_human_membership \
 
 The command accepts no password or privileged Supabase key. It validates the role, organization, location scope, language, and assignment rules, then writes only BevSense profile and membership data through the configured `BIB_DATABASE_URL`. Use a real existing Auth UUID when configuring an environment; the UUID above is documentation-only.
 
+Migration `20260810_0005` adds the self-service `access_requests` lifecycle table. When `BIB_SELF_SIGNUP_ENABLED=true`, the public signup directory exposes only organization and location names/IDs. A verified human may submit one current request, but remains inactive with no membership or location assignment. Supervisors can approve Utility Worker and Technician access inside their own organization; organization admins may also approve Supervisor / Manager access. Approval activates the profile and creates the final membership and required location assignment in one database transaction. This workflow never stores credentials, trusts request metadata for authorization, or exposes organization-admin as a public signup role.
+
 ## API and tests
 
 Operational routes remain under `/api/v1`:
 
 - `GET /api/v1/health`
 - `GET /api/v1/me`
+- `GET /api/v1/public/signup-options`
+- `GET /api/v1/account/access-status`
+- `POST /api/v1/account/access-request`
+- `GET /api/v1/access-requests?status=pending`
+- `POST /api/v1/access-requests/{request_id}/approve`
+- `POST /api/v1/access-requests/{request_id}/reject`
 - `GET /api/v1/organizations/{organization_id}/locations/{location_id}/snapshot`
 - `PUT /api/v1/organizations/{organization_id}/locations/{location_id}/controllers/{controller_id}/readings/{reading_id}`
 
@@ -221,4 +230,4 @@ Tests migrate and seed isolated temporary SQLite databases. They do not use the 
 
 ## Current boundaries
 
-Persisted seed and ingested readings remain simulated and do not represent physical hardware. Human authentication and server-side role/location authorization are implemented behind an off-by-default feature flag, but real Supabase users and deployment environment variables must be configured manually. There is no user-administration console, password storage, service-role automation, or claim that presentation personas provide security. Rate limiting, physical hardware ingestion, MQTT, AWS, Docker, TLS deployment, and deployment configuration are not implemented. The same portable SQLAlchemy models, migrations, repositories, and services support SQLite and PostgreSQL; real managed-PostgreSQL and remote Supabase Auth verification remain deployment work.
+Persisted seed and ingested readings remain simulated and do not represent physical hardware. Human authentication, server-side role/location authorization, and self-service onboarding are implemented behind off-by-default feature flags, but migration 0005, deployment environment variables, and Supabase email behavior must be configured and tested manually. BevSense stores no passwords and uses no service-role automation; presentation personas still provide no security. Rate limiting, physical hardware ingestion, MQTT, AWS, Docker, TLS deployment, and deployment configuration are not implemented. The same portable SQLAlchemy models, migrations, repositories, and services support SQLite and PostgreSQL; remote deployment verification remains separate work.

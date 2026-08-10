@@ -128,6 +128,93 @@ class LocationAssignmentRecord(Base):
     )
 
 
+class AccessRequestRecord(Base):
+    __tablename__ = "access_requests"
+    __table_args__ = (
+        CheckConstraint(
+            "requested_role IN ('utility-worker', 'supervisor-manager', "
+            "'technician')",
+            name="ck_access_requests_requested_role",
+        ),
+        CheckConstraint(
+            "approved_role IS NULL OR approved_role IN "
+            "('utility-worker', 'supervisor-manager', 'technician')",
+            name="ck_access_requests_approved_role",
+        ),
+        CheckConstraint(
+            "status IN ('pending', 'approved', 'rejected')",
+            name="ck_access_requests_status",
+        ),
+        CheckConstraint(
+            "(status = 'pending' AND approved_role IS NULL AND "
+            "approved_location_id IS NULL AND reviewed_by_auth_user_id IS NULL "
+            "AND reviewed_at IS NULL) OR "
+            "(status = 'approved' AND approved_role IS NOT NULL AND "
+            "reviewed_by_auth_user_id IS NOT NULL AND reviewed_at IS NOT NULL) OR "
+            "(status = 'rejected' AND approved_role IS NULL AND "
+            "approved_location_id IS NULL AND reviewed_by_auth_user_id IS NOT NULL "
+            "AND reviewed_at IS NOT NULL)",
+            name="ck_access_requests_lifecycle",
+        ),
+        CheckConstraint(
+            "approved_role IS NULL OR "
+            "(approved_role = 'supervisor-manager' AND "
+            "approved_location_id IS NULL) OR "
+            "(approved_role IN ('utility-worker', 'technician') AND "
+            "approved_location_id IS NOT NULL)",
+            name="ck_access_requests_approved_location_requirement",
+        ),
+        ForeignKeyConstraint(
+            ["requested_organization_id", "requested_location_id"],
+            ["locations.organization_id", "locations.id"],
+            name="fk_access_requests_requested_location_scope",
+        ),
+        ForeignKeyConstraint(
+            ["requested_organization_id", "approved_location_id"],
+            ["locations.organization_id", "locations.id"],
+            name="fk_access_requests_approved_location_scope",
+        ),
+        Index(
+            "ix_access_requests_status_organization",
+            "status",
+            "requested_organization_id",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
+    auth_user_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("user_profiles.auth_user_id"),
+        nullable=False,
+        unique=True,
+    )
+    verified_email: Mapped[str] = mapped_column(String(320), nullable=False)
+    full_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    requested_organization_id: Mapped[str] = mapped_column(
+        String(255), ForeignKey("organizations.id"), nullable=False
+    )
+    requested_location_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    requested_role: Mapped[str] = mapped_column(String(32), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    approved_role: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    approved_location_id: Mapped[str | None] = mapped_column(
+        String(255), nullable=True
+    )
+    reviewed_by_auth_user_id: Mapped[UUID | None] = mapped_column(
+        Uuid, ForeignKey("user_profiles.auth_user_id"), nullable=True
+    )
+    reviewed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    review_note: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+
+
 class ControllerRecord(Base):
     __tablename__ = "controllers"
     __table_args__ = (

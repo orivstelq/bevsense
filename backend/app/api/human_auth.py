@@ -8,6 +8,7 @@ from app.dependencies import (
     get_human_authorization_service,
 )
 from app.security.human_tokens import (
+    AuthenticatedHuman,
     HumanAuthenticationUnavailableError,
     InvalidHumanTokenError,
 )
@@ -24,6 +25,43 @@ human_bearer = HTTPBearer(
     scheme_name="HumanBearer",
     description="Supabase human access token for protected portal reads.",
 )
+
+
+def authenticate_human_identity(
+    enabled: Annotated[bool, Depends(get_human_auth_enabled)],
+    credentials: Annotated[
+        HTTPAuthorizationCredentials | None,
+        Security(human_bearer),
+    ],
+    service: Annotated[
+        HumanAuthorizationService | None,
+        Depends(get_human_authorization_service),
+    ],
+) -> AuthenticatedHuman:
+    if not enabled or service is None:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Human authentication is not available.",
+        )
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            "Authentication required.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    try:
+        return service.authenticate_identity(credentials.credentials)
+    except InvalidHumanTokenError:
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            "Authentication required.",
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from None
+    except HumanAuthenticationUnavailableError:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Authentication is temporarily unavailable.",
+        ) from None
 
 
 def authorize_snapshot_read(

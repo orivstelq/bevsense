@@ -18,6 +18,7 @@ from app.main import app
 from app.security.human_tokens import (
     AuthenticatedHuman,
     InvalidHumanTokenError,
+    SupabaseHumanTokenVerifier,
 )
 from app.services.human_authorization_service import HumanAuthorizationService
 from tests.conftest import DatabaseFixture
@@ -208,6 +209,39 @@ def test_human_token_does_not_authenticate_controller_ingestion(
         },
     )
     assert response.status_code == 401
+
+
+@pytest.mark.parametrize(
+    ("confirmed_at", "expected_email"),
+    (("2026-08-10T12:00:00Z", "user@example.com"), (None, None)),
+)
+def test_supabase_verifier_only_exposes_confirmed_email(
+    monkeypatch: pytest.MonkeyPatch,
+    confirmed_at: str | None,
+    expected_email: str | None,
+):
+    class Response:
+        status_code = 200
+        is_success = True
+
+        @staticmethod
+        def json():
+            return {
+                "id": str(UTILITY_ID),
+                "email": " User@Example.COM ",
+                "email_confirmed_at": confirmed_at,
+            }
+
+    monkeypatch.setattr(
+        "app.security.human_tokens.httpx.get",
+        lambda *_args, **_kwargs: Response(),
+    )
+    identity = SupabaseHumanTokenVerifier(
+        "https://project.example",
+        "publishable-example",
+    ).verify("opaque-token")
+    assert identity.auth_user_id == UTILITY_ID
+    assert identity.verified_email == expected_email
 
 
 def test_provisioning_associates_existing_auth_identity_with_scoped_access(

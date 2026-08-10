@@ -2,20 +2,28 @@ import Link from "next/link";
 
 import { BevSenseBrand } from "@/components/brand/bevsense-brand";
 import { HardwareDisconnectedIllustration } from "@/components/product/hardware-disconnected-illustration";
+import { AccessStatusPanel } from "@/features/auth/access-status-panel";
 import { signOut } from "@/app/login/actions";
-import type { HumanAccount } from "@/lib/auth/human-account";
+import type { HumanSessionState } from "@/types/access-onboarding";
 
 type ProductionHomeProps = {
   hardwareConnectionsEnabled: boolean;
   humanAuthEnabled: boolean;
-  account: HumanAccount | null;
+  selfSignupEnabled: boolean;
+  sessionState: HumanSessionState;
 };
 
 export function ProductionHome({
   hardwareConnectionsEnabled,
   humanAuthEnabled,
-  account,
+  selfSignupEnabled,
+  sessionState,
 }: ProductionHomeProps) {
+  const account = sessionState.status === "active" ? sessionState.account : null;
+  const canReviewAccess = account?.memberships.some((membership) =>
+    ["supervisor-manager", "organization-admin"].includes(membership.role),
+  );
+
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
       <div className="mx-auto max-w-6xl">
@@ -23,6 +31,9 @@ export function ProductionHome({
           <BevSenseBrand className="text-slate-950" />
         </header>
 
+        {sessionState.status !== "signed-out" && sessionState.status !== "active" ? (
+          <AccessStatusPanel state={sessionState} />
+        ) : (
         <section className="grid min-h-[calc(100vh-10rem)] items-center gap-10 py-10 md:grid-cols-[minmax(0,1fr)_18rem] md:py-16">
           <div className="max-w-2xl">
             <p className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">
@@ -53,12 +64,22 @@ export function ProductionHome({
                   </button>
                 </form>
               ) : humanAuthEnabled ? (
-                <Link
-                  className="inline-flex min-h-11 items-center justify-center rounded-md bg-slate-950 px-5 text-sm font-semibold text-white outline-none hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-amber-500"
-                  href="/login"
-                >
-                  Sign In
-                </Link>
+                <>
+                  <Link
+                    className="inline-flex min-h-11 items-center justify-center rounded-md bg-slate-950 px-5 text-sm font-semibold text-white outline-none hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-amber-500"
+                    href="/login"
+                  >
+                    Sign In
+                  </Link>
+                  {selfSignupEnabled && (
+                    <Link
+                      className="inline-flex min-h-11 items-center justify-center rounded-md border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-800 outline-none hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-amber-500"
+                      href="/signup"
+                    >
+                      Create Account
+                    </Link>
+                  )}
+                </>
               ) : (
                 <button
                   className="min-h-11 rounded-md bg-slate-300 px-5 text-sm font-semibold text-slate-600"
@@ -87,6 +108,14 @@ export function ProductionHome({
                   Signed in. Live hardware data remains unavailable in this
                   environment.
                 </p>
+                {canReviewAccess && (
+                  <Link
+                    className="mt-3 inline-flex min-h-11 items-center font-semibold text-slate-800 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                    href="/access-requests"
+                  >
+                    Manage Access
+                  </Link>
+                )}
               </div>
             ) : (
               <p className="mt-3 text-xs leading-5 text-slate-500">
@@ -101,6 +130,7 @@ export function ProductionHome({
             <HardwareDisconnectedIllustration />
           </div>
         </section>
+        )}
       </div>
     </main>
   );
