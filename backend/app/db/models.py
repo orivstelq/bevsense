@@ -1,6 +1,8 @@
 from datetime import datetime
+from uuid import UUID
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     DateTime,
     Float,
@@ -8,6 +10,7 @@ from sqlalchemy import (
     ForeignKeyConstraint,
     Index,
     String,
+    Uuid,
     UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column
@@ -20,6 +23,29 @@ class OrganizationRecord(Base):
 
     id: Mapped[str] = mapped_column(String(255), primary_key=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
+
+
+class UserProfileRecord(Base):
+    __tablename__ = "user_profiles"
+    __table_args__ = (
+        CheckConstraint(
+            "preferred_language IN ('en', 'es')",
+            name="ck_user_profiles_preferred_language",
+        ),
+    )
+
+    auth_user_id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
+    display_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    preferred_language: Mapped[str] = mapped_column(
+        String(8), nullable=False, default="en"
+    )
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
 
 
 class LocationRecord(Base):
@@ -40,6 +66,66 @@ class LocationRecord(Base):
         nullable=False,
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
+
+
+class OrganizationMembershipRecord(Base):
+    __tablename__ = "organization_memberships"
+    __table_args__ = (
+        CheckConstraint(
+            "role IN ('utility-worker', 'supervisor-manager', "
+            "'organization-admin', 'technician')",
+            name="ck_organization_memberships_role",
+        ),
+        ForeignKeyConstraint(
+            ["auth_user_id"],
+            ["user_profiles.auth_user_id"],
+            name="fk_organization_memberships_profile",
+            ondelete="CASCADE",
+        ),
+        Index("ix_organization_memberships_organization_id", "organization_id"),
+    )
+
+    auth_user_id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
+    organization_id: Mapped[str] = mapped_column(
+        String(255), ForeignKey("organizations.id"), primary_key=True
+    )
+    role: Mapped[str] = mapped_column(String(32), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+
+
+class LocationAssignmentRecord(Base):
+    __tablename__ = "location_assignments"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["auth_user_id", "organization_id"],
+            [
+                "organization_memberships.auth_user_id",
+                "organization_memberships.organization_id",
+            ],
+            name="fk_location_assignments_membership",
+            ondelete="CASCADE",
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "location_id"],
+            ["locations.organization_id", "locations.id"],
+            name="fk_location_assignments_location_scope",
+        ),
+        Index(
+            "ix_location_assignments_location_scope",
+            "organization_id",
+            "location_id",
+        ),
+    )
+
+    auth_user_id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    location_id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
 
 
 class ControllerRecord(Base):

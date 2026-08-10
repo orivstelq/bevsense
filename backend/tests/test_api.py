@@ -178,12 +178,14 @@ def test_openapi_exposes_only_versioned_operational_routes(
     security_schemes = response.json()["components"]["securitySchemes"]
     assert security_schemes["ControllerBearer"]["type"] == "http"
     assert security_schemes["ControllerBearer"]["scheme"] == "bearer"
+    assert security_schemes["HumanBearer"]["scheme"] == "bearer"
     assert paths[ingestion_path]["put"]["security"] == [
         {"ControllerBearer": []}
     ]
-    assert "security" not in paths[
+    assert paths[
         "/api/v1/organizations/{organization_id}/locations/{location_id}/snapshot"
-    ]["get"]
+    ]["get"]["security"] == [{"HumanBearer": []}]
+    assert paths["/api/v1/me"]["get"]["security"] == [{"HumanBearer": []}]
     assert "/health" not in paths
     assert (
         "/organizations/{organization_id}/locations/{location_id}/snapshot"

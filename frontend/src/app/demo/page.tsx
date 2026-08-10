@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { BevSenseBrand } from "@/components/brand/bevsense-brand";
-import { demoContext } from "@/config/demo-context";
-import { defaultDemoPersona } from "@/config/demo-personas";
+import { StartDemoButton } from "@/components/demo/start-demo-button";
 
 export const metadata: Metadata = {
   title: "Presentation Demo | BevSense",
@@ -34,21 +32,7 @@ export default function DemoEntryPage() {
               equipment connection.
             </p>
 
-            <Link
-              className="mt-8 inline-flex min-h-11 w-full items-center justify-center rounded-md bg-slate-950 px-5 text-sm font-semibold text-white outline-none hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 sm:w-auto"
-              href={{
-                pathname: "/",
-                query: {
-                  mode: "demo",
-                  location: demoContext.location.id,
-                  persona: defaultDemoPersona.id,
-                  lang: "en",
-                  started: "1",
-                },
-              }}
-            >
-              Start Demo
-            </Link>
+            <StartDemoButton />
           </div>
         </section>
       </div>

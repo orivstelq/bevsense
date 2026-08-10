@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { demoLocations } from "@/config/demo-context";
 import type { DemoPersona } from "@/config/demo-personas";
@@ -23,6 +23,7 @@ export function Settings({
   language,
 }: SettingsProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const copy = getDemoTranslations(language);
 
   function navigate(locationId: string, nextLanguage: DemoLanguage) {
@@ -31,9 +32,22 @@ export function Settings({
       location: locationId,
       persona: persona.id,
       lang: nextLanguage,
+      demoStartedAt: searchParams.get("demoStartedAt") ?? "",
     });
 
     router.push(`/settings?${query.toString()}`);
+  }
+
+  function restartPresentation() {
+    const query = new URLSearchParams({
+      mode: "demo",
+      location: currentLocationId,
+      persona: persona.id,
+      lang: language,
+      demoStartedAt: new Date().toISOString(),
+      started: "1",
+    });
+    router.push(`/?${query.toString()}`);
   }
 
   return (
@@ -113,6 +127,23 @@ export function Settings({
               {copy.locationFromHeader}
             </p>
           )}
+        </section>
+
+        <section className="rounded-md border border-slate-200 bg-white p-5 shadow-sm lg:col-span-2">
+          <h2 className="text-lg font-semibold text-slate-950">
+            Restart presentation
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+            Return simulated inventory to its baseline and restart the
+            presentation clock for this session.
+          </p>
+          <button
+            className="mt-4 min-h-11 rounded-md border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-800 outline-none hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-amber-500"
+            onClick={restartPresentation}
+            type="button"
+          >
+            Restart presentation
+          </button>
         </section>
       </div>
     </div>

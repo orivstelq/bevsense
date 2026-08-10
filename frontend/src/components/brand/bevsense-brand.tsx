@@ -1,11 +1,15 @@
+import Link from "next/link";
+
 type BevSenseBrandProps = {
   className?: string;
 };
 
 export function BevSenseBrand({ className = "" }: BevSenseBrandProps) {
   return (
-    <div
-      className={`inline-flex items-center gap-2 text-lg font-semibold tracking-tight ${className}`}
+    <Link
+      aria-label="BevSense home"
+      className={`inline-flex min-h-11 items-center gap-2 rounded-sm text-lg font-semibold tracking-tight outline-none transition-opacity duration-150 hover:opacity-80 focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 motion-reduce:transition-none ${className}`}
+      href="/"
     >
       <svg
         aria-hidden="true"
@@ -31,6 +35,6 @@ export function BevSenseBrand({ className = "" }: BevSenseBrandProps) {
         <circle cx="12" cy="8.5" fill="currentColor" r="1.5" />
       </svg>
       <span>BevSense</span>
-    </div>
+    </Link>
   );
 }

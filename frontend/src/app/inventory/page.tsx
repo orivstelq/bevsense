@@ -13,9 +13,9 @@ export const metadata: Metadata = {
 export default async function InventoryPage({
   searchParams,
 }: PageProps<"/inventory">) {
-  const { context, language, persona, scope } =
+  const { context, demoStartedAt, language, persona, scope } =
     await resolveDemoContextFromSearchParams(searchParams, "/inventory");
-  const telemetry = await loadDemoLocationTelemetry(scope);
+  const telemetry = await loadDemoLocationTelemetry(scope, demoStartedAt);
 
   return (
     <ApplicationShell context={context} language={language} persona={persona}>

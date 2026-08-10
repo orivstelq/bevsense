@@ -8,10 +8,14 @@
     "start": "next start",
     "lint": "eslint",
     "verify:demo-experience": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/verify-demo-experience.mjs",
+    "verify:live-demo": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/verify-live-demo.mjs",
+    "verify:auth-boundaries": "node scripts/verify-auth-boundaries.mjs",
     "verify:product-experience": "node scripts/verify-product-experience.mjs",
     "verify:telemetry-contract": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/verify-telemetry-contract.mjs"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.4",
+    "@supabase/supabase-js": "^2.112.2",
     "next": "16.3.0",
     "react": "19.2.8",
     "react-dom": "19.2.8"

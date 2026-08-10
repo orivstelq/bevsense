@@ -20,6 +20,7 @@ export class HttpTelemetryProvider implements TelemetryProvider {
   constructor(
     private readonly apiBaseUrl: string,
     private readonly timeoutMilliseconds = requestTimeoutMilliseconds,
+    private readonly accessToken?: string,
   ) {}
 
   async getSnapshot(scope: LocationScope) {
@@ -37,7 +38,12 @@ export class HttpTelemetryProvider implements TelemetryProvider {
     try {
       response = await fetch(endpoint, {
         cache: "no-store",
-        headers: { Accept: "application/json" },
+        headers: {
+          Accept: "application/json",
+          ...(this.accessToken
+            ? { Authorization: `Bearer ${this.accessToken}` }
+            : {}),
+        },
         signal: AbortSignal.timeout(this.timeoutMilliseconds),
       });
     } catch (error) {

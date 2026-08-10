@@ -171,13 +171,41 @@ python -m app.scripts.revoke_dev_controller_credential \
 
 Issuance never revokes older credentials automatically. Revoking an already revoked credential is idempotent and preserves its original revocation time. Revoking the final active credential is allowed, but the command emits a warning that the controller has no active credentials. There is no unrevoke operation; issue a new credential instead.
 
-This is a development controller-authentication foundation, not a production security system. It provides per-controller credentials, scope binding, and local issuance/list/revocation tools, but not human authentication, RBAC, rate limiting, credential expiration, automated rotation, audit history, or complete cryptographic replay protection. Reading-ID idempotency only prevents duplicate record creation. Production controller traffic requires HTTPS/TLS; local HTTP is for loopback development only.
+This is a development controller-authentication foundation. It remains separate from human portal authentication and provides per-controller credentials, scope binding, and local issuance/list/revocation tools, but not rate limiting, credential expiration, automated rotation, audit history, or complete cryptographic replay protection. Reading-ID idempotency only prevents duplicate record creation. Production controller traffic requires HTTPS/TLS; local HTTP is for loopback development only.
+
+## Human portal authentication
+
+Human authentication is disabled by default and is controlled independently from controller ingestion:
+
+```bash
+BIB_HUMAN_AUTH_ENABLED=false
+# BIB_SUPABASE_URL=https://project-ref.supabase.co
+# BIB_SUPABASE_PUBLISHABLE_KEY=sb_publishable_example
+```
+
+When enabled, the URL and publishable Auth key are required. FastAPI validates each bearer token server-side through the Supabase Auth user endpoint, then resolves the BevSense profile, organization membership, role, and any location assignments from PostgreSQL. It does not decode and trust unverified JWT claims. Missing or invalid human credentials return `401`; an authenticated identity without permitted organization/location access returns `403`. Health remains public. Controller ingestion continues to require its separate controller credential.
+
+Migration `20260809_0004` adds `user_profiles`, `organization_memberships`, and `location_assignments` without changing telemetry tables. The tables store only the Supabase Auth user UUID and BevSense access metadata; they never store passwords or password hashes. The migration does not create a cross-schema foreign key to `auth.users` because local SQLite migration tests and non-Supabase databases must remain portable. Identity existence is instead established by verified Supabase authentication before application authorization.
+
+Associate an existing Supabase Auth user with BevSense after migrating the selected database:
+
+```bash
+python -m app.scripts.provision_human_membership \
+  --auth-user-id 00000000-0000-0000-0000-000000000000 \
+  --display-name "Example User" \
+  --organization-id demo-organization \
+  --role utility-worker \
+  --location-id demo-main-dining
+```
+
+The command accepts no password or privileged Supabase key. It validates the role, organization, location scope, language, and assignment rules, then writes only BevSense profile and membership data through the configured `BIB_DATABASE_URL`. Use a real existing Auth UUID when configuring an environment; the UUID above is documentation-only.
 
 ## API and tests
 
 Operational routes remain under `/api/v1`:
 
 - `GET /api/v1/health`
+- `GET /api/v1/me`
 - `GET /api/v1/organizations/{organization_id}/locations/{location_id}/snapshot`
 - `PUT /api/v1/organizations/{organization_id}/locations/{location_id}/controllers/{controller_id}/readings/{reading_id}`
 
@@ -193,4 +221,4 @@ Tests migrate and seed isolated temporary SQLite databases. They do not use the 
 
 ## Current boundaries
 
-Persisted seed and ingested readings remain simulated and do not represent physical hardware. Controller bearer credentials authenticate configured simulated controllers, but dashboard users still have no authentication or authorization. Production credential provisioning, RBAC, rate limiting, physical hardware ingestion, MQTT, AWS, Docker, TLS deployment, and deployment configuration are not implemented. The same portable SQLAlchemy models, migrations, repositories, and services support SQLite and PostgreSQL; real managed-PostgreSQL deployment verification remains future work.
+Persisted seed and ingested readings remain simulated and do not represent physical hardware. Human authentication and server-side role/location authorization are implemented behind an off-by-default feature flag, but real Supabase users and deployment environment variables must be configured manually. There is no user-administration console, password storage, service-role automation, or claim that presentation personas provide security. Rate limiting, physical hardware ingestion, MQTT, AWS, Docker, TLS deployment, and deployment configuration are not implemented. The same portable SQLAlchemy models, migrations, repositories, and services support SQLite and PostgreSQL; real managed-PostgreSQL and remote Supabase Auth verification remain deployment work.

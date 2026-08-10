@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { demoLocations } from "@/config/demo-context";
 import {
@@ -28,6 +28,7 @@ export function DemoContextControls({
 }: DemoContextControlsProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const copy = getDemoTranslations(language);
 
   function navigate(locationId: string, nextPersona: DemoPersona) {
@@ -36,6 +37,7 @@ export function DemoContextControls({
       location: locationId,
       persona: nextPersona.id,
       lang: language,
+      demoStartedAt: searchParams.get("demoStartedAt") ?? "",
     });
     const destination = getDemoPersonaDestination(nextPersona, pathname);
 

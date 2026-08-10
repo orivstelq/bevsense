@@ -8,20 +8,34 @@ import {
   resolveDemoContextFromSearchParams,
 } from "@/lib/demo-context";
 import { getHardwareConnectionsEnabled } from "@/lib/product-environment";
+import { getHumanAuthEnabled } from "@/lib/auth/auth-environment";
+import { getAuthenticatedHumanAccount } from "@/lib/auth/human-account";
 import { loadDemoLocationTelemetry } from "@/lib/telemetry/load-location-telemetry";
 
 export default async function Home({ searchParams }: PageProps<"/">) {
   if (!(await isExplicitDemoMode(searchParams))) {
+    const humanAuthEnabled = getHumanAuthEnabled();
     return (
       <ProductionHome
+        account={
+          humanAuthEnabled ? await getAuthenticatedHumanAccount() : null
+        }
         hardwareConnectionsEnabled={getHardwareConnectionsEnabled()}
+        humanAuthEnabled={humanAuthEnabled}
       />
     );
   }
 
-  const { context, language, persona, scope, showDemoStarted } =
+  const {
+    context,
+    demoStartedAt,
+    language,
+    persona,
+    scope,
+    showDemoStarted,
+  } =
     await resolveDemoContextFromSearchParams(searchParams, "/");
-  const telemetry = await loadDemoLocationTelemetry(scope);
+  const telemetry = await loadDemoLocationTelemetry(scope, demoStartedAt);
 
   return (
     <>

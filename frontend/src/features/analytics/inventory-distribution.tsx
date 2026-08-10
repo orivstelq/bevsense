@@ -63,7 +63,7 @@ export function InventoryDistribution({
                   role="progressbar"
                 >
                   <div
-                    className={`h-full ${presentation.barClassName}`}
+                    className={`h-full transition-[width] duration-500 motion-reduce:transition-none ${presentation.barClassName}`}
                     style={{ width: `${presentation.roundedPercentage}%` }}
                   />
                 </div>

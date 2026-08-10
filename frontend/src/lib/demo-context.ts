@@ -16,6 +16,7 @@ import {
 } from "@/config/demo-translations";
 import type { LocationScope } from "@/types/domain";
 import type { OrganizationContext } from "@/types/organization-context";
+import { isValidDemoStartedAt } from "@/lib/demo-simulation";
 
 type DemoSearchParams = Promise<
   Record<string, string | string[] | undefined>
@@ -36,6 +37,7 @@ export async function resolveDemoContextFromSearchParams(
     location: requestedLocationId,
     persona: requestedPersonaId,
     lang: requestedLanguage,
+    demoStartedAt: requestedDemoStartedAt,
     started: requestedStarted,
   } = params;
 
@@ -50,6 +52,7 @@ export async function resolveDemoContextFromSearchParams(
       typeof requestedPersonaId !== "string") ||
     (requestedLanguage !== undefined &&
       typeof requestedLanguage !== "string") ||
+    typeof requestedDemoStartedAt !== "string" ||
     (requestedStarted !== undefined && requestedStarted !== "1")
   ) {
     notFound();
@@ -67,7 +70,12 @@ export async function resolveDemoContextFromSearchParams(
     ? languageValue
     : null;
 
-  if (!location || !persona || !language) {
+  if (
+    !location ||
+    !persona ||
+    !language ||
+    !isValidDemoStartedAt(requestedDemoStartedAt)
+  ) {
     notFound();
   }
 
@@ -76,6 +84,7 @@ export async function resolveDemoContextFromSearchParams(
     location: location.id,
     persona: persona.id,
     lang: language,
+    demoStartedAt: requestedDemoStartedAt,
   });
   if (requestedStarted === "1") {
     query.set("started", "1");
@@ -87,6 +96,7 @@ export async function resolveDemoContextFromSearchParams(
       key !== "location" &&
       key !== "persona" &&
       key !== "lang" &&
+      key !== "demoStartedAt" &&
       key !== "started",
   );
 
@@ -114,6 +124,7 @@ export async function resolveDemoContextFromSearchParams(
     context,
     persona,
     language,
+    demoStartedAt: requestedDemoStartedAt,
     scope,
     showDemoStarted: requestedStarted === "1",
   } as const;

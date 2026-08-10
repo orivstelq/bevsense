@@ -33,11 +33,11 @@ function readApiBaseUrl() {
   return url.toString();
 }
 
-export function getTelemetryProvider(): TelemetryProvider {
+export function getTelemetryProvider(accessToken?: string): TelemetryProvider {
   const configuredProvider = process.env.BIB_TELEMETRY_PROVIDER ?? "http";
 
   if (configuredProvider === "http") {
-    return new HttpTelemetryProvider(readApiBaseUrl());
+    return new HttpTelemetryProvider(readApiBaseUrl(), undefined, accessToken);
   }
   if (configuredProvider === "simulated") {
     return simulatedTelemetryProvider;

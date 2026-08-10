@@ -95,7 +95,7 @@ export function InventoryTrayCard({
             role="progressbar"
           >
             <div
-              className={`h-full ${level.barClassName}`}
+              className={`h-full transition-[width] duration-500 motion-reduce:transition-none ${level.barClassName}`}
               style={{ width: `${level.roundedPercentage}%` }}
             />
           </div>

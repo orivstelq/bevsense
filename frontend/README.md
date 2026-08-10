@@ -1,4 +1,4 @@
-# BiB Platform Frontend
+# BevSense Frontend
 
 Responsive operations interface for the Bag-in-Box beverage inventory monitoring platform.
 
@@ -32,4 +32,20 @@ Set `BIB_TELEMETRY_PROVIDER=simulated` to deliberately use the existing frontend
 
 Telemetry-driven demo routes refresh in the background through Next.js `router.refresh()`. The browser does not call FastAPI directly: server components rerun the existing server-only telemetry loader, whose HTTP requests use `cache: "no-store"`. Refresh pauses while the tab is hidden, resumes with an immediate refresh when visible, and remains polling rather than WebSocket or streaming telemetry. `BIB_API_BASE_URL` remains server-only.
 
-Run `npm run verify:product-experience`, `npm run verify:telemetry-contract`, `npm run lint`, and `npm run build` before submitting frontend changes.
+Starting the presentation creates a URL-backed `demoStartedAt` clock. The frontend derives deterministic gross-weight depletion from the approved fixtures and continues to calculate remaining inventory through the existing weight model. Restarting the presentation replaces that clock and returns the presentation to its fixture baseline. Supervisor and organization-admin Analytics views include clearly labeled demo projections based only on this deterministic model; they are not production forecasts.
+
+## Human authentication
+
+Human sign-in is disabled by default and is independent from the public presentation personas:
+
+```bash
+BIB_HUMAN_AUTH_ENABLED=false
+# BIB_SUPABASE_URL=https://project-ref.supabase.co
+# BIB_SUPABASE_PUBLISHABLE_KEY=sb_publishable_example
+```
+
+Only exact `true` and `false` values are accepted. When enabled, both Supabase values are required by the server runtime. They are intentionally not `NEXT_PUBLIC` variables, and no Supabase service-role key, database credential, or controller credential belongs in the frontend. Next.js server actions handle password sign-in/sign-out, the Next.js 16 proxy refreshes auth cookies, and server-rendered FastAPI requests forward the user's access token. FastAPI remains responsible for organization/location authorization.
+
+The authenticated production path does not reuse `persona` query values. Demo personas remain presentation-only, and the explicit demo remains usable without human authentication or FastAPI. With hardware connections disabled, a signed-in user still receives the truthful hardware-disconnected state. Production forecasting is not shown because no production usage-history model exists yet.
+
+Run the product, demo, telemetry-contract, live-demo, and auth-boundary verifiers followed by `npm run lint`, `npx tsc --noEmit`, and `npm run build` before submitting frontend changes.

@@ -3,13 +3,16 @@ import {
   type DemoLanguage,
 } from "@/config/demo-translations";
 import type { SnapshotAnalytics } from "@/types/analytics";
+import type { DemoPlanning } from "@/lib/analytics/derive-demo-planning";
 
 import { AnalyticsSummary } from "./analytics-summary";
 import { InventoryDistribution } from "./inventory-distribution";
+import { DemoPlanningSection } from "./demo-planning";
 
 type AnalyticsProps = {
   analytics: SnapshotAnalytics;
   language: DemoLanguage;
+  planning: DemoPlanning;
 };
 
 function MetricList({
@@ -34,7 +37,7 @@ function MetricList({
   );
 }
 
-export function Analytics({ analytics, language }: AnalyticsProps) {
+export function Analytics({ analytics, language, planning }: AnalyticsProps) {
   const copy = getDemoTranslations(language);
   const configurationMetrics = [
     {
@@ -109,13 +112,17 @@ export function Analytics({ analytics, language }: AnalyticsProps) {
           DETERMINISTIC SIMULATION DATA
         </h2>
         <p className="mt-1 max-w-4xl text-sm leading-6 text-amber-900">
-          Values come from the current fixed demo snapshot, not live hardware.
-          No historical analytics dataset exists yet, so no trends, usage
-          rates, or forecasts are shown.
+          Values come from the current deterministic presentation snapshot,
+          not live hardware.
+          No historical analytics dataset exists yet, so no production trends
+          or customer forecasts are shown. The planning section uses only the
+          deterministic presentation model.
         </p>
       </aside>
 
       <AnalyticsSummary analytics={analytics} />
+
+      <DemoPlanningSection planning={planning} />
 
       <InventoryDistribution
         language={language}

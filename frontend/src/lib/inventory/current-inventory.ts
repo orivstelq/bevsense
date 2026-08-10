@@ -1,5 +1,5 @@
-import { deriveInventoryState } from "@/lib/inventory-calculations";
-import { selectLatestReadingForTray } from "@/lib/telemetry/selectors";
+import { deriveInventoryState } from "../inventory-calculations.ts";
+import { selectLatestReadingForTray } from "../telemetry/selectors.ts";
 import type { LocationTelemetrySnapshot } from "@/types/domain";
 
 const rackPositionPattern = /^Rack ([1-3]) \/ Position (10|[1-9])$/;

@@ -12,6 +12,7 @@ import {
 } from "./server-provider";
 import { simulatedTelemetryProvider } from "./simulated-provider";
 import type { TelemetryProvider } from "./provider";
+import { deriveDemoSnapshotAt } from "@/lib/demo-simulation";
 
 export type LocationTelemetryLoadResult =
   | {
@@ -43,10 +44,24 @@ async function loadTelemetry(
   }
 }
 
-export function loadLocationTelemetry(scope: LocationScope) {
-  return loadTelemetry(scope, getTelemetryProvider());
+export function loadLocationTelemetry(scope: LocationScope, accessToken?: string) {
+  return loadTelemetry(scope, getTelemetryProvider(accessToken));
 }
 
-export function loadDemoLocationTelemetry(scope: LocationScope) {
-  return loadTelemetry(scope, simulatedTelemetryProvider);
+export async function loadDemoLocationTelemetry(
+  scope: LocationScope,
+  demoStartedAt: string,
+  currentAt = new Date().toISOString(),
+) {
+  const result = await loadTelemetry(scope, simulatedTelemetryProvider);
+  return result.status === "ready"
+    ? {
+        status: "ready" as const,
+        snapshot: deriveDemoSnapshotAt(
+          result.snapshot,
+          demoStartedAt,
+          currentAt,
+        ),
+      }
+    : result;
 }
