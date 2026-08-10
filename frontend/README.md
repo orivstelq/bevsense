@@ -40,6 +40,8 @@ Human sign-in is disabled by default and is independent from the public presenta
 
 ```bash
 BIB_HUMAN_AUTH_ENABLED=false
+BIB_SELF_SIGNUP_ENABLED=false
+BIB_APP_BASE_URL=http://localhost:3000
 # BIB_SUPABASE_URL=https://project-ref.supabase.co
 # BIB_SUPABASE_PUBLISHABLE_KEY=sb_publishable_example
 ```
@@ -48,4 +50,8 @@ Only exact `true` and `false` values are accepted. When enabled, both Supabase v
 
 The authenticated production path does not reuse `persona` query values. Demo personas remain presentation-only, and the explicit demo remains usable without human authentication or FastAPI. With hardware connections disabled, a signed-in user still receives the truthful hardware-disconnected state. Production forecasting is not shown because no production usage-history model exists yet.
 
-Run the product, demo, telemetry-contract, live-demo, and auth-boundary verifiers followed by `npm run lint`, `npx tsc --noEmit`, and `npm run build` before submitting frontend changes.
+Self-service signup is independently disabled by default. When both human auth and self-signup are enabled, `/signup` obtains only organization and workplace labels from FastAPI, creates the identity through Supabase Auth, and submits a separate BevSense access request after email verification (or immediately when confirmation is disabled). Requested metadata never grants authorization. FastAPI creates real membership and location access only after a supervisor or organization admin approves the request at `/access-requests`.
+
+`BIB_APP_BASE_URL` is the server-side public origin used for confirmation redirects. The default confirmation email verifies the address before returning to `/login?confirmation=success`; the user then signs in normally so BevSense can repair a missing access request from validated signup metadata. `/auth/confirm` remains available only for future custom templates that explicitly send `token_hash` and `type`. No external SMTP provider or privileged Supabase key is configured by this code.
+
+Run the product, demo, telemetry-contract, live-demo, auth-boundary, and access-onboarding verifiers followed by `npm run lint`, `npx tsc --noEmit`, and `npm run build` before submitting frontend changes.

@@ -8,6 +8,7 @@ from app.services.telemetry_ingestion_service import TelemetryIngestionService
 from app.services.telemetry_service import TelemetryService
 from app.security.human_tokens import SupabaseHumanTokenVerifier
 from app.services.human_authorization_service import HumanAuthorizationService
+from app.services.access_request_service import AccessRequestService
 
 
 def create_telemetry_service(
@@ -64,6 +65,15 @@ def get_telemetry_ingestion_service() -> TelemetryIngestionService:
 
 def get_human_auth_enabled() -> bool:
     return settings.human_auth_enabled
+
+
+def get_self_signup_enabled() -> bool:
+    return settings.self_signup_enabled
+
+
+@lru_cache
+def get_access_request_service() -> AccessRequestService:
+    return AccessRequestService(get_session_factory())
 
 
 @lru_cache

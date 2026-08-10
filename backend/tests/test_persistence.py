@@ -1,4 +1,6 @@
+from datetime import UTC, datetime
 from pathlib import Path
+from uuid import UUID
 
 import pytest
 from alembic import command
@@ -9,6 +11,7 @@ from sqlalchemy.exc import IntegrityError, OperationalError
 
 from app.db.engine import create_database_engine, create_session_factory
 from app.db.models import (
+    AccessRequestRecord,
     ControllerCredentialRecord,
     ControllerRecord,
     InventoryItemRecord,
@@ -16,6 +19,7 @@ from app.db.models import (
     OrganizationRecord,
     SensorTrayRecord,
     TelemetryReadingRecord,
+    UserProfileRecord,
 )
 from app.dependencies import create_telemetry_service, get_telemetry_service
 from app.main import app
@@ -26,6 +30,7 @@ from tests.conftest import DatabaseFixture
 
 
 EXPECTED_TABLES = {
+    "access_requests",
     "alembic_version",
     "controller_credentials",
     "controllers",
@@ -38,6 +43,55 @@ EXPECTED_TABLES = {
     "telemetry_readings",
     "user_profiles",
 }
+
+REQUESTER_ID = UUID("00000000-0000-0000-0000-000000000301")
+REVIEWER_ID = UUID("00000000-0000-0000-0000-000000000302")
+
+
+def add_access_request_profiles(database: DatabaseFixture, now: datetime) -> None:
+    with database.session_factory.begin() as session:
+        session.add_all(
+            (
+                UserProfileRecord(
+                    auth_user_id=REQUESTER_ID,
+                    display_name="Requester",
+                    preferred_language="en",
+                    is_active=False,
+                    created_at=now,
+                    updated_at=now,
+                ),
+                UserProfileRecord(
+                    auth_user_id=REVIEWER_ID,
+                    display_name="Reviewer",
+                    preferred_language="en",
+                    is_active=True,
+                    created_at=now,
+                    updated_at=now,
+                ),
+            )
+        )
+
+
+def access_request(now: datetime, **overrides) -> AccessRequestRecord:
+    values = {
+        "id": UUID("00000000-0000-0000-0000-000000000303"),
+        "auth_user_id": REQUESTER_ID,
+        "verified_email": "requester@example.com",
+        "full_name": "Requester",
+        "requested_organization_id": "demo-organization",
+        "requested_location_id": "demo-main-dining",
+        "requested_role": "utility-worker",
+        "status": "pending",
+        "approved_role": None,
+        "approved_location_id": None,
+        "reviewed_by_auth_user_id": None,
+        "reviewed_at": None,
+        "review_note": None,
+        "created_at": now,
+        "updated_at": now,
+    }
+    values.update(overrides)
+    return AccessRequestRecord(**values)
 
 
 def table_counts(database: DatabaseFixture) -> dict[str, int]:
@@ -66,7 +120,7 @@ def test_initial_migration_supports_downgrade_and_upgrade(
     with migrated_database.engine.connect() as connection:
         assert (
             MigrationContext.configure(connection).get_current_revision()
-            == "20260809_0004"
+            == "20260810_0005"
         )
 
     credential_columns = {
@@ -77,6 +131,56 @@ def test_initial_migration_supports_downgrade_and_upgrade(
     }
     assert credential_columns["revoked_at"]["nullable"] is True
     assert ControllerCredentialRecord.__table__.c.revoked_at.type.timezone is True
+
+    access_request_columns = {
+        column["name"]
+        for column in inspect(migrated_database.engine).get_columns(
+            "access_requests"
+        )
+    }
+    assert access_request_columns == {
+        "id",
+        "auth_user_id",
+        "verified_email",
+        "full_name",
+        "requested_organization_id",
+        "requested_location_id",
+        "requested_role",
+        "status",
+        "approved_role",
+        "approved_location_id",
+        "reviewed_by_auth_user_id",
+        "reviewed_at",
+        "review_note",
+        "created_at",
+        "updated_at",
+    }
+    assert frozenset({"auth_user_id"}) in {
+        frozenset(constraint["column_names"])
+        for constraint in inspect(migrated_database.engine).get_unique_constraints(
+            "access_requests"
+        )
+    }
+    access_request_inspector = inspect(migrated_database.engine)
+    profile_foreign_key = next(
+        foreign_key
+        for foreign_key in access_request_inspector.get_foreign_keys(
+            "access_requests"
+        )
+        if foreign_key["constrained_columns"] == ["auth_user_id"]
+    )
+    assert profile_foreign_key["options"].get("ondelete") != "CASCADE"
+    assert {
+        "ck_access_requests_lifecycle",
+        "ck_access_requests_approved_location_requirement",
+    }.issubset(
+        {
+            constraint["name"]
+            for constraint in access_request_inspector.get_check_constraints(
+                "access_requests"
+            )
+        }
+    )
 
     command.downgrade(migrated_database.alembic_config, "20260809_0002")
     assert "revoked_at" not in {
@@ -95,6 +199,78 @@ def test_initial_migration_supports_downgrade_and_upgrade(
     ]
     command.upgrade(migrated_database.alembic_config, "head")
     assert set(inspect(migrated_database.engine).get_table_names()) == EXPECTED_TABLES
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    (
+        {
+            "status": "pending",
+            "reviewed_by_auth_user_id": REVIEWER_ID,
+            "reviewed_at": datetime(2026, 8, 10, tzinfo=UTC),
+        },
+        {
+            "status": "approved",
+            "reviewed_by_auth_user_id": REVIEWER_ID,
+            "reviewed_at": datetime(2026, 8, 10, tzinfo=UTC),
+        },
+        {
+            "status": "approved",
+            "approved_role": "utility-worker",
+            "reviewed_by_auth_user_id": REVIEWER_ID,
+            "reviewed_at": datetime(2026, 8, 10, tzinfo=UTC),
+        },
+        {
+            "status": "approved",
+            "approved_role": "supervisor-manager",
+            "approved_location_id": "demo-main-dining",
+            "reviewed_by_auth_user_id": REVIEWER_ID,
+            "reviewed_at": datetime(2026, 8, 10, tzinfo=UTC),
+        },
+        {
+            "status": "approved",
+            "approved_role": "utility-worker",
+            "approved_location_id": "demo-main-dining",
+        },
+        {"status": "rejected"},
+        {
+            "status": "rejected",
+            "approved_role": "utility-worker",
+            "approved_location_id": "demo-main-dining",
+            "reviewed_by_auth_user_id": REVIEWER_ID,
+            "reviewed_at": datetime(2026, 8, 10, tzinfo=UTC),
+        },
+    ),
+)
+def test_access_request_constraints_reject_inconsistent_lifecycle(
+    seeded_database: DatabaseFixture,
+    overrides: dict[str, object],
+) -> None:
+    now = datetime(2026, 8, 10, tzinfo=UTC)
+    add_access_request_profiles(seeded_database, now)
+    with seeded_database.session_factory() as session:
+        session.add(access_request(now, **overrides))
+        with pytest.raises(IntegrityError):
+            session.commit()
+
+
+def test_access_request_prevents_profile_deletion(
+    seeded_database: DatabaseFixture,
+) -> None:
+    now = datetime(2026, 8, 10, tzinfo=UTC)
+    add_access_request_profiles(seeded_database, now)
+    with seeded_database.session_factory.begin() as session:
+        session.add(access_request(now))
+
+    with pytest.raises(IntegrityError):
+        with seeded_database.session_factory.begin() as session:
+            session.delete(session.get(UserProfileRecord, REQUESTER_ID))
+
+    with seeded_database.session_factory() as session:
+        assert session.get(
+            AccessRequestRecord,
+            UUID("00000000-0000-0000-0000-000000000303"),
+        ) is not None
 
 
 def test_demo_seed_is_idempotent(seeded_database: DatabaseFixture) -> None:

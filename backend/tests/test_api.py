@@ -186,6 +186,19 @@ def test_openapi_exposes_only_versioned_operational_routes(
         "/api/v1/organizations/{organization_id}/locations/{location_id}/snapshot"
     ]["get"]["security"] == [{"HumanBearer": []}]
     assert paths["/api/v1/me"]["get"]["security"] == [{"HumanBearer": []}]
+    assert "/api/v1/public/signup-options" in paths
+    assert "/api/v1/account/access-status" in paths
+    assert "/api/v1/account/access-request" in paths
+    assert "/api/v1/access-requests" in paths
+    assert "/api/v1/access-requests/{request_id}/approve" in paths
+    assert "/api/v1/access-requests/{request_id}/reject" in paths
+    assert "security" not in paths["/api/v1/public/signup-options"]["get"]
+    assert paths["/api/v1/account/access-status"]["get"]["security"] == [
+        {"HumanBearer": []}
+    ]
+    assert paths["/api/v1/access-requests"]["get"]["security"] == [
+        {"HumanBearer": []}
+    ]
     assert "/health" not in paths
     assert (
         "/organizations/{organization_id}/locations/{location_id}/snapshot"

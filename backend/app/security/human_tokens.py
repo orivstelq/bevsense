@@ -16,6 +16,7 @@ class HumanAuthenticationUnavailableError(Exception):
 @dataclass(frozen=True, slots=True)
 class AuthenticatedHuman:
     auth_user_id: UUID
+    verified_email: str | None = None
 
 
 class HumanTokenVerifier(Protocol):
@@ -56,8 +57,24 @@ class SupabaseHumanTokenVerifier:
             )
 
         try:
-            auth_user_id = UUID(response.json()["id"])
+            payload = response.json()
+            auth_user_id = UUID(payload["id"])
         except (KeyError, TypeError, ValueError) as error:
             raise InvalidHumanTokenError("Invalid human access token.") from error
 
-        return AuthenticatedHuman(auth_user_id=auth_user_id)
+        email = payload.get("email")
+        confirmed_at = payload.get("email_confirmed_at") or payload.get(
+            "confirmed_at"
+        )
+        verified_email = (
+            email.strip().lower()
+            if isinstance(email, str)
+            and 0 < len(email.strip()) <= 320
+            and isinstance(confirmed_at, str)
+            and confirmed_at.strip()
+            else None
+        )
+        return AuthenticatedHuman(
+            auth_user_id=auth_user_id,
+            verified_email=verified_email,
+        )

@@ -3,7 +3,11 @@
 import { redirect } from "next/navigation";
 
 import { getHumanAuthEnabled } from "@/lib/auth/auth-environment";
-import { loadHumanAccount } from "@/lib/auth/human-account";
+import {
+  ensureAccessRequestFromMetadata,
+  hasAccessRequestMetadata,
+  loadAccessStatus,
+} from "@/lib/auth/access-onboarding";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type LoginState = { error: string | null };
@@ -31,20 +35,18 @@ export async function signIn(
     return { error: "Unable to sign in with those credentials." };
   }
 
-  try {
-    const account = await loadHumanAccount(data.session.access_token);
-    if (!account.account) {
-      await supabase.auth.signOut();
-      return {
-        error:
-          account.status === 403
-            ? "Your BevSense account is inactive or has no active organization membership."
-            : "BevSense account access is temporarily unavailable.",
-      };
+  if (data.user && hasAccessRequestMetadata(data.user)) {
+    try {
+      const accessStatus = await loadAccessStatus(data.session.access_token);
+      if (accessStatus.status === "no-request") {
+        await ensureAccessRequestFromMetadata(
+          data.session.access_token,
+          data.user,
+        );
+      }
+    } catch {
+      redirect("/");
     }
-  } catch {
-    await supabase.auth.signOut();
-    return { error: "BevSense account access is temporarily unavailable." };
   }
 
   redirect("/");

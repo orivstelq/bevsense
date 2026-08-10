@@ -5,6 +5,7 @@ from app.core.config import (
     DEFAULT_DATABASE_URL,
     get_database_sslmode,
     get_database_url,
+    get_self_signup_enabled,
     normalize_database_url,
 )
 from app.db import engine as engine_module
@@ -15,8 +16,22 @@ def clear_database_environment(monkeypatch) -> None:
         "BIB_DATABASE_URL",
         "DATABASE_URL",
         "BIB_DATABASE_SSLMODE",
+        "BIB_SELF_SIGNUP_ENABLED",
     ):
         monkeypatch.delenv(variable, raising=False)
+
+
+def test_self_signup_flag_defaults_off_and_parses_strictly(monkeypatch) -> None:
+    clear_database_environment(monkeypatch)
+    assert get_self_signup_enabled() is False
+    monkeypatch.setenv("BIB_SELF_SIGNUP_ENABLED", "true")
+    assert get_self_signup_enabled() is True
+    monkeypatch.setenv("BIB_SELF_SIGNUP_ENABLED", "false")
+    assert get_self_signup_enabled() is False
+    for malformed in ("TRUE", " true ", "1", ""):
+        monkeypatch.setenv("BIB_SELF_SIGNUP_ENABLED", malformed)
+        with pytest.raises(ValueError, match="either true or false"):
+            get_self_signup_enabled()
 
 
 def test_database_url_environment_precedence(monkeypatch) -> None:
