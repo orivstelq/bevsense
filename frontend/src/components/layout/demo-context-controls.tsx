@@ -25,6 +25,7 @@ export function DemoContextControls({
 
   function navigate(locationId: string, nextPersona: DemoPersona) {
     const query = new URLSearchParams({
+      mode: "demo",
       location: locationId,
       persona: nextPersona.id,
     });
@@ -40,7 +41,7 @@ export function DemoContextControls({
           className="block text-xs font-semibold text-slate-600"
           htmlFor="demo-location"
         >
-          Demo location
+          Location
         </label>
         <select
           aria-describedby="demo-context-help"
@@ -64,7 +65,7 @@ export function DemoContextControls({
           className="block text-xs font-semibold text-slate-600"
           htmlFor="demo-persona"
         >
-          Demo persona
+          Persona
         </label>
         <select
           aria-describedby="demo-context-help"
@@ -93,7 +94,7 @@ export function DemoContextControls({
         className="text-[11px] leading-4 text-slate-500 sm:col-span-2"
         id="demo-context-help"
       >
-        Presentation only — not authentication
+        Presentation mode | Sign-in not required
       </p>
     </div>
   );

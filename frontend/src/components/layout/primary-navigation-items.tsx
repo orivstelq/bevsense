@@ -57,7 +57,11 @@ export function PrimaryNavigationItems({
                 }
                 href={{
                   pathname: item.href,
-                  query: { location: locationId, persona: persona.id },
+                  query: {
+                    mode: "demo",
+                    location: locationId,
+                    persona: persona.id,
+                  },
                 }}
               >
                 {item.label}

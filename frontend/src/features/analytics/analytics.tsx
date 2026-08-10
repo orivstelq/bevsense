@@ -86,11 +86,8 @@ export function Analytics({ analytics }: AnalyticsProps) {
   return (
     <div className="space-y-6 sm:space-y-8">
       <section aria-labelledby="analytics-title">
-        <p className="text-sm font-semibold tracking-[0.08em] text-slate-500">
-          CURRENT SNAPSHOT ANALYTICS
-        </p>
         <h1
-          className="mt-1 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl"
+          className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl"
           id="analytics-title"
         >
           Analytics

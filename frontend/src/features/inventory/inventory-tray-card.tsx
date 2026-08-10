@@ -24,12 +24,6 @@ const timestampFormatter = new Intl.DateTimeFormat("en-US", {
   timeZoneName: "short",
 });
 
-const controllerStatusLabels = {
-  online: "Online",
-  offline: "Offline",
-  unknown: "Unknown",
-} as const;
-
 function formatTimestamp(timestamp: string) {
   const date = new Date(timestamp);
 
@@ -151,15 +145,12 @@ export function InventoryTrayCard({
           Latest reading
         </p>
         {latestReading ? (
-          <>
-            <time
-              className="mt-1 block text-sm font-medium text-slate-800 xl:mt-0"
-              dateTime={latestReading.timestamp}
-            >
-              {formatTimestamp(latestReading.timestamp)}
-            </time>
-            <p className="mt-1 text-xs text-slate-500">Simulated reading</p>
-          </>
+          <time
+            className="mt-1 block text-sm font-medium text-slate-800 xl:mt-0"
+            dateTime={latestReading.timestamp}
+          >
+            {formatTimestamp(latestReading.timestamp)}
+          </time>
         ) : (
           <p className="mt-1 text-sm text-slate-600 xl:mt-0">
             No reading available
@@ -172,14 +163,9 @@ export function InventoryTrayCard({
           Controller
         </p>
         {controller ? (
-          <>
-            <p className="mt-1 break-words text-sm font-medium text-slate-800 xl:mt-0">
-              {controller.name}
-            </p>
-            <p className="mt-1 text-xs text-slate-500">
-              Simulated · {controllerStatusLabels[controller.status]}
-            </p>
-          </>
+          <p className="mt-1 break-words text-sm font-medium text-slate-800 xl:mt-0">
+            {controller.name}
+          </p>
         ) : (
           <>
             <p className="mt-1 text-sm font-medium text-slate-700 xl:mt-0">
